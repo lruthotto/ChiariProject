@@ -21,7 +21,8 @@ Reference_ID = 28;
 
 omega     = [0,20,0,25];
 m         = [256,256];
-viewPara = {'viewImage','viewImage2D','colormap','bone(256)'};
+viewPara  = {'viewImage','viewImage2D','colormap','bone(256)'};
+imgPara   = {'imgModel','linearInter'};
 
 % Data
 data = load('chiariTrainingData.mat');
@@ -38,6 +39,9 @@ dataT_mask = mask_scale .* orient(masks(:,:,Template_ID));
 dataR_mask = mask_scale .* orient(masks(:,:,Reference_ID));
 
 % Multilevel representation
+viewImage('reset',viewPara{:});
+imgModel('reset',imgPara{:});
+
 ML = getMultilevel({dataT,dataR},omega,m,'fig',2);
 ML_mask = getMultilevel({dataT_mask,dataR_mask},omega,m);
 
