@@ -48,70 +48,43 @@ ML_mask = getMultilevel({dataT_mask,dataR_mask},omega,m);
 % More options
 viewImage('reset','viewImage','viewImage2D','colormap',bone(256),'axis','off');
 imgModel('reset','imgModel','splineInter','regularizer','moments','theta',1e-2);
-trafo('reset','trafo','affine2D');
+distance('reset','distance','SSD','weights',MLw);
+trafo('reset','trafo','rigid2D');
 regularizer('reset','regularizer','mbElastic','alpha',1e3,'mu',1,'lambda',0);
 
-%% Build a weighted SSD distance that ignores background
-xc = reshape(getCellCenteredGrid(omega,m),[],2);
-c  = (omega(2:2:end)+omega(1:2:end))./2;
-dataW = exp(- .01*(xc(:,1)-c(1)).^2 - .01*(xc(:,2)-c(2)).^2)+.1;
-
-%% Plot the reference and the weights
-figure(1);clf;
-subplot(1,2,1);
-viewImage(dataR,omega,m);
-title('dataR - reference image');
-colorbar
-
-subplot(1,2,2);
-ph = viewImage2Dsc(dataW,omega,m,'caxis',[0 1]);
-title('dataW - weights');
-colorbar;
-
-%% Generate multilevel representation of data images and weights
-[ML,minLevel,maxLevel] = getMultilevel({dataT,dataR,dataW},omega,m,'names',{'T','R','W'});
-
-% extract multilevel representation of weights
-%
-% 1) get discrete data of weighs from ML
-% 2) get coefficients and evaluate image model on grids
-% 3) store weights for each level as diagonal matrix 
-% 4) provide multi-level representation of weights to distance
-%
-
-MLw = cell(maxLevel,1);
-for lvl=minLevel:maxLevel
-    WD = ML{lvl}.W;  % 1) 
-    WC = WD;         % 2) coefficients for linear inter
-    Wc = linearInter(WC,omega,getCellCenteredGrid(omega,ML{lvl}.m)); % 3)
-    MLw{lvl}.Wc = diag(sparse(Wc)); 
-    MLw{lvl}.m  = ML{lvl}.m;
-    ML{lvl} = rmfield(ML{lvl},'W');
-end
-
-distance('reset','distance','SSD','weights',MLw);
-
 %% Calculate and display the transformation
-
-[yc,wc,his] = MLIR(ML,'parametric',1,'plotIter',1,'plotMLiter',1);
+[yc,wc,his] = MLIR(ML, 'parametric', false,...
+    'minLevel', 3, 'maxLevel', 8,'plots',1);
 
 % Also apply the transformation to the mask
 showResults(ML,yc)
 showResults(ML_mask, yc)
 
-%% PLotting the Transformed Mask
+%% Plotting the transformed mask
 
-%Use the Transformation Function on the Template Mask
-ycc = center(yc, m); %change to a centered grid
-[Tmask] = nnInter(dataT_mask,omega,ycc);
+% %Use the transformation function on the template mask
+% ycc = center(yc, m); %change to a centered grid
+% [Tmask] = nnInter(dataT_mask,omega,ycc);
+% 
+% figure(); clf;
+% %Reference image
+% viewImage(dataR,omega,m);
+% hold on
+% %Plot transformed mask
+% viewContour2D(Tmask, omega, m);
+% axis equal
+% colorbar
 
-figure(); clf;
-%Reference Image
-viewImage(dataR,omega,m);
-hold on
-%Plot Transformed Mask
-viewContour2D(Tmask, omega, m);
-axis equal
-colorbar
+%% Soft metric of segmentation quality
+[T, R] = imgModel('coefficients',ML{length(ML)}.T,ML{length(ML)}.R,omega,'out',0);
+
+model_yc = abs(imgModel(T, omega, ycc)) ./ 1024;
+model_r = abs(imgModel(R, omega, xc)) ./ 1024;
+intersection = sum(scaled_yc .* scaled_dr);
+mask_sum = sum(scaled_yc) + sum(scaled_dr);
+union = mask_sum - intersection;
+
+disp("jaccard: " + (intersection / union))
+disp("dice: " + ((2 * intersection) / mask_sum))
 
 %==============================================================================
