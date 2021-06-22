@@ -99,4 +99,19 @@ distance('reset','distance','SSD','weights',MLw);
 showResults(ML,yc)
 showResults(ML_mask, yc)
 
+%% PLotting the Transformed Mask
+
+%Use the Transformation Function on the Template Mask
+ycc = center(yc, m); %change to a centered grid
+[Tmask] = nnInter(dataT_mask,omega,ycc);
+
+figure(); clf;
+%Reference Image
+viewImage(dataR,omega,m);
+hold on
+%Plot Transformed Mask
+viewContour2D(Tmask, omega, m);
+axis equal
+colorbar
+
 %==============================================================================
