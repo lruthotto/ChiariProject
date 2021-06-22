@@ -12,10 +12,7 @@ function histnormal(refids, opt)
 %           Figure 3) Original Images
 %                     Adjusted Images
 %           
-%           histnormal([1 2 3 4],1) will do the same, and also print the
-%           original and adjusted image as original# and adjusted#,
-%           respectively, with # corresponding to the image's id number
-%
+%           histnormal(
 % refids = vector of patient id numbers
 %
 %  NOTE: this function lines images up side by side in one figure, so doing
