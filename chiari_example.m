@@ -11,6 +11,7 @@
 %   - optimization         Gauss-Newton
 % ===============================================================================
 
+
 %% Initial Setup
 close all
 
@@ -76,23 +77,29 @@ showResults(ML_mask, yc)
 % colorbar
 
 %% Soft metric of segmentation quality
-[T, R] = imgModel('coefficients',ML{length(ML)}.T,ML{length(ML)}.R,omega,'out',0);
+[T_mg, R_mg] = imgModel('coefficients',ML{length(ML)}.T,ML{length(ML)}.R,omega,'out',0);
+[T_mk, R_mk] = imgModel('coefficients',ML_mask{length(ML)}.T,ML_mask{length(ML)}.R,omega,'out',0);
 xc = getCellCenteredGrid(omega, m);
 ycc = center(yc, m);
 
-m_yc = imgModel(T, omega, ycc);
-m_r = imgModel(R, omega, xc);
+mg_yc = imgModel(T_mg, omega, ycc);
+mg_r = imgModel(R_mg, omega, xc);
+mk_yc = imgModel(T_mk, omega, ycc);
+mk_r = imgModel(R_mk, omega, xc);
 
-max_value = max([m_yc; m_r]);
-model_yc = m_yc ./ max_value;
-model_r = m_r ./ max_value;
+max_value = max([mg_yc; mg_r]);
+model_mg_yc = mg_yc ./ max_value;
+model_mg_r = mg_r ./ max_value;
 
-[d_s,j_s] = dice_jaccard(model_yc, model_r, 0);
-[d_h,j_h] = dice_jaccard(model_yc, model_r, 1);
+model_mk_yc = mk_yc & mk_yc;
+model_mk_r = mk_r & mk_r;
 
-disp("dice (soft): " + d_s);
-disp("jacc (soft): " + j_s);
-disp("dice (hard): " + d_h);
-disp("jacc (hard): " + j_h);
+[d_mg,j_mg] = dice_jaccard(model_mg_yc, model_mg_r, 0);
+[d_mk,j_mk] = dice_jaccard(model_mk_yc, model_mk_r, 1);
+
+disp("dice (mag):  " + d_mg);
+disp("jacc (mag):  " + j_mg);
+disp("dice (mask): " + d_mk);
+disp("jacc (mask): " + j_mk);
 
 %==============================================================================
