@@ -1,12 +1,13 @@
 %==============================================================================
 % 
-%  Function for calculating the segmentation quality using a soft metric.
-%  The matrices must be the same size. They are compared with a combination
-%  of intersections and unions.
+%  Function for calculating the segmentation quality. The matrices must be
+%  the same size. They are compared with a combination of intersections and
+%  unions.
 %  
 %  Parameters:
 %    - Matrix #1
 %    - Matrix #2
+%    - Soft/Hard metric
 %
 %  Outputs:
 %    - Dice similarity
@@ -21,33 +22,36 @@ function varargout = dice_jaccard(varargin)
     
     data1 = abs(varargin{1});
     data2 = abs(varargin{2});
+    soft = varargin{3};
 
+    smooth = 0.001;
+    axes = [1, 2];
+        
     % calculate the information
-    intersection = sum(data1 .* data2, 'all');
-    mask_sum = sum(data1, 'all') + sum(data2, 'all');
-    union = mask_sum - intersection;
-    
-    % edge case if one image is all zeroes
-    if mask_sum == 0
-        varargout{1} = 1;
-        varargout{2} = 1;
-        return
+    if(soft == 0)
+        mask_sum = sum(data1, axes) + sum(data2, axes);
+        inter = sum(data1 .* data2, axes);
+        union = mask_sum - inter;
+    else
+        mask_sum = sum(ceil(data1), axes) + sum(ceil(data2), axes);
+        inter = sum(data1 & data2, axes);
+        union = sum(data1 | data2, axes);
     end
         
     % return simularities
-    varargout{1} = (2 * intersection) / mask_sum;
-    varargout{2} = intersection / union;
+    varargout{1} = mean(2 * (inter + smooth) / (mask_sum + smooth));
+    varargout{2} = mean((inter + smooth) / (union + smooth));
     
     return
 end
 
 function runMinimalExample
-    A = zeros(256, 192);
-    B = ones(256, 64);
+    A = zeros(256, 128);
+    B = 0.5 * ones(256, 128);
     data1 = [A B];
     
     A = zeros(256, 128);
-    B = ones(256, 128);
+    B = 0.5 * ones(256, 128);
     data2 = [A B];
     
     figure()
@@ -58,7 +62,10 @@ function runMinimalExample
     subplot(2, 1, 2)
     imagesc(data2)
     
-    [d,j] = dice_jaccard(data1, data2);
-    disp("dice: " + d);
-    disp("jaccard: " + j);
+    [d_s,j_s] = dice_jaccard(data1, data2, 0);
+    [d_h,j_h] = dice_jaccard(data1, data2, 1);
+    disp("dice (soft): " + d_s);
+    disp("jacc (soft): " + j_s);
+    disp("dice (hard): " + d_h);
+    disp("jacc (hard): " + j_h);
 end

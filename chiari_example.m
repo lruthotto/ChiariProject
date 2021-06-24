@@ -9,23 +9,14 @@
 %   - pre-registration     rigid2D
 %   - regularizer          mbElastic
 %   - optimization         Gauss-Newton
-%   
-%   - Defalt Example       Template: MRI 18, Reference: MRI 28
 % ===============================================================================
-
-function[] = chiari_example(Template_ID, Reference_ID)
-%% Defaults
-if nargin<2 || isempty(Reference_ID)
-     Reference_ID = 28;
-end
-if nargin<1 || isempty(Template_ID)
-     Template_ID = 18;
-end
 
 %% Initial Setup
 close all
 
-% Parameters = Template_ID, Reference_ID
+% Parameters
+Template_ID = 18;
+Reference_ID = 28;
 
 omega     = [0,20,0,25];
 m         = [256,256];
@@ -34,8 +25,9 @@ imgPara   = {'imgModel','linearInter'};
 
 % Data
 data = load('chiariTrainingData.mat');
+normData = load('normalizedChiariTraining.mat');
 
-images = data.imagesTrain;
+images = normData.images_normal;
 masks = data.masksTrain;
 
 orient = @(I) flipud(I)';
@@ -56,7 +48,7 @@ ML_mask = getMultilevel({dataT_mask,dataR_mask},omega,m);
 % More options
 viewImage('reset','viewImage','viewImage2D','colormap',bone(256),'axis','off');
 imgModel('reset','imgModel','splineInter','regularizer','moments','theta',1e-2);
-distance('reset','distance','SSD');
+distance('reset','distance','NGF');
 trafo('reset','trafo','rigid2D');
 regularizer('reset','regularizer','mbElastic','alpha',1e3,'mu',1,'lambda',0);
 
@@ -85,15 +77,22 @@ showResults(ML_mask, yc)
 
 %% Soft metric of segmentation quality
 [T, R] = imgModel('coefficients',ML{length(ML)}.T,ML{length(ML)}.R,omega,'out',0);
-xc = reshape(getCellCenteredGrid(omega, m), [], 2);
+xc = getCellCenteredGrid(omega, m);
+ycc = center(yc, m);
 
-model_yc = imgModel(T, omega, center(yc, m)) ./ 1024;
-model_r = imgModel(R, omega, xc) ./ 1024;
+m_yc = imgModel(T, omega, ycc);
+m_r = imgModel(R, omega, xc);
 
-[d,j] = dice_jaccard(model_yc, model_r);
+max_value = max([m_yc; m_r]);
+model_yc = m_yc ./ max_value;
+model_r = m_r ./ max_value;
 
-disp("dice: " + d)
-disp("jaccard: " + j)
+[d_s,j_s] = dice_jaccard(model_yc, model_r, 0);
+[d_h,j_h] = dice_jaccard(model_yc, model_r, 1);
 
-end
+disp("dice (soft): " + d_s);
+disp("jacc (soft): " + j_s);
+disp("dice (hard): " + d_h);
+disp("jacc (hard): " + j_h);
+
 %==============================================================================
