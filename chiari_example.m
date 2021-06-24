@@ -10,15 +10,18 @@
 %   - regularizer          mbElastic
 %   - optimization         Gauss-Newton
 % ===============================================================================
+function[] = chiari_example(Template_ID, Reference_ID) 
 
+%% Defaults 
+if nargin<2 || isempty(Reference_ID) 
+     Reference_ID = 28; 
+end 
+if nargin<1 || isempty(Template_ID) 
+     Template_ID = 18; 
+end 
 
 %% Initial Setup
 close all
-
-% Parameters
-Template_ID = 18;
-Reference_ID = 28;
-
 omega     = [0,20,0,25];
 m         = [256,256];
 viewPara  = {'viewImage','viewImage2D','colormap','bone(256)'};
@@ -27,7 +30,6 @@ imgPara   = {'imgModel','linearInter'};
 % Data
 data = load('chiariTrainingData.mat');
 normData = load('normalizedChiariTraining.mat');
-
 images = normData.images_normal;
 masks = data.masksTrain;
 
@@ -101,5 +103,5 @@ disp("dice (mag):  " + d_mg);
 disp("jacc (mag):  " + j_mg);
 disp("dice (mask): " + d_mk);
 disp("jacc (mask): " + j_mk);
-
+end
 %==============================================================================
