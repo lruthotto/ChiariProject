@@ -11,7 +11,6 @@
 %   - optimization         Gauss-Newton
 %   
 %   - Defalt Example       Template: MRI 18, Reference: MRI 28
-%
 % ===============================================================================
 
 function[] = chiari_example(Template_ID, Reference_ID)
