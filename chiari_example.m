@@ -9,15 +9,23 @@
 %   - pre-registration     rigid2D
 %   - regularizer          mbElastic
 %   - optimization         Gauss-Newton
+%   
+%   - Defalt Example       Template: MRI 18, Reference: MRI 28
 % ===============================================================================
 
+function[] = chiari_example(Template_ID, Reference_ID)
+%% Defaults
+if nargin<2 || isempty(Reference_ID)
+     Reference_ID = 28;
+end
+if nargin<1 || isempty(Template_ID)
+     Template_ID = 18;
+end
 
 %% Initial Setup
 close all
 
-% Parameters
-Template_ID = 18;
-Reference_ID = 28;
+% Parameters = Template_ID, Reference_ID
 
 omega     = [0,20,0,25];
 m         = [256,256];
@@ -87,4 +95,5 @@ model_r = imgModel(R, omega, xc) ./ 1024;
 disp("dice: " + d)
 disp("jaccard: " + j)
 
+end
 %==============================================================================
