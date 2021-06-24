@@ -3,7 +3,7 @@ function histnormal(refids, figs, jpgs, mat)
 % refids = patient id numbers       vector
 % figs   = choice for figures       0 or 1
 % jpgs   = choice for .jpgs         0 or 1
-% mat    = choice for .mat file     0 or 1
+% mat    = choice for .mat file     0 or 1   
 %
 % Ex:       histnormal([1 2 3 4], 1, 1, 1)  will create 3 figures:
 %
@@ -18,10 +18,10 @@ function histnormal(refids, figs, jpgs, mat)
 %
 %           It will also print each original and adjusted image to a .jpg
 %           file (original#.jpg and adjusted#.jpg) and will store the
-%           images in a .mat file (images_normal and images_adjusted, each 
+%           images in a .mat file (images_original and images_normal, each 
 %           256x256xlength(refids) double)
 %
-%           defaults with figures on and .jpg/.mat printing off
+%           Defaults with figures on and .jpg/.mat printing off
 %
 %  NOTE: this function lines images up side by side in one figure, so doing
 %  inputting more than about 5 ids at once (in a vector) is not recommended
