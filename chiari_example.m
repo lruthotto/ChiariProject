@@ -48,7 +48,7 @@ ML_mask = getMultilevel({dataT_mask,dataR_mask},omega,m);
 % More options
 viewImage('reset','viewImage','viewImage2D','colormap',bone(256),'axis','off');
 imgModel('reset','imgModel','splineInter','regularizer','moments','theta',1e-2);
-distance('reset','distance','SSD','weights',MLw);
+distance('reset','distance','SSD');
 trafo('reset','trafo','rigid2D');
 regularizer('reset','regularizer','mbElastic','alpha',1e3,'mu',1,'lambda',0);
 
@@ -77,8 +77,9 @@ showResults(ML_mask, yc)
 
 %% Soft metric of segmentation quality
 [T, R] = imgModel('coefficients',ML{length(ML)}.T,ML{length(ML)}.R,omega,'out',0);
+xc = reshape(getCellCenteredGrid(omega, m), [], 2);
 
-model_yc = imgModel(T, omega, ycc) ./ 1024;
+model_yc = imgModel(T, omega, center(yc, m)) ./ 1024;
 model_r = imgModel(R, omega, xc) ./ 1024;
 
 [d,j] = dice_jaccard(model_yc, model_r);
