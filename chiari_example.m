@@ -56,7 +56,7 @@ trafo('reset','trafo','rigid2D');
 regularizer('reset','regularizer','mbElastic','alpha',1e3,'mu',1,'lambda',0);
 
 %% Calculate and display the transformation
-[yc,wc,his] = MLIR(ML, 'parametric', false,...
+yc = MLIR(ML, 'parametric', false,...
     'minLevel', 3, 'maxLevel', 8,'plots',1);
 
 % Also apply the transformation to the mask
@@ -79,15 +79,12 @@ showResults(ML_mask, yc)
 % colorbar
 
 %% Soft metric of segmentation quality
-[T_mg, R_mg] = imgModel('coefficients',ML{length(ML)}.T,ML{length(ML)}.R,omega,'out',0);
-[T_mk, R_mk] = imgModel('coefficients',ML_mask{length(ML)}.T,ML_mask{length(ML)}.R,omega,'out',0);
-xc = getCellCenteredGrid(omega, m);
 ycc = center(yc, m);
 
-mg_yc = imgModel(T_mg, omega, ycc);
-mg_r = imgModel(R_mg, omega, xc);
-mk_yc = round(imgModel(T_mk, omega, ycc) ./ 128);
-mk_r = round(imgModel(R_mk, omega, xc) ./ 128);
+mg_yc = nnInter(dataT, omega, ycc);
+mg_r = reshape(dataR, [], 1);
+mk_yc = round(nnInter(dataT_mask, omega, ycc) ./ 128);
+mk_r = round(reshape(dataR_mask, [], 1) ./ 128);
 
 max_value = max([mg_yc; mg_r]);
 model_mg_yc = mg_yc ./ max_value;
