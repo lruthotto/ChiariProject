@@ -47,11 +47,11 @@ end
 
 function runMinimalExample
     A = zeros(256, 128);
-    B = 0.5 * ones(256, 128);
+    B = ones(256, 128);
     data1 = [A B];
     
-    A = zeros(256, 128);
-    B = 0.5 * ones(256, 128);
+    A = zeros(256, 192);
+    B = ones(256, 64);
     data2 = [A B];
     
     figure()
@@ -62,10 +62,7 @@ function runMinimalExample
     subplot(2, 1, 2)
     imagesc(data2)
     
-    [d_s,j_s] = dice_jaccard(data1, data2, 0);
-    [d_h,j_h] = dice_jaccard(data1, data2, 1);
-    disp("dice (soft): " + d_s);
-    disp("jacc (soft): " + j_s);
-    disp("dice (hard): " + d_h);
-    disp("jacc (hard): " + j_h);
+    [d, j] = dice_jaccard(data1, data2, 1);
+    disp("Dice: " + d);
+    disp("Jacc: " + j);
 end
