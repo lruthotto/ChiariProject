@@ -86,22 +86,35 @@ ycc = center(yc, m);
 
 mg_yc = imgModel(T_mg, omega, ycc);
 mg_r = imgModel(R_mg, omega, xc);
-mk_yc = imgModel(T_mk, omega, ycc);
-mk_r = imgModel(R_mk, omega, xc);
+mk_yc = round(imgModel(T_mk, omega, ycc) ./ 128);
+mk_r = round(imgModel(R_mk, omega, xc) ./ 128);
 
 max_value = max([mg_yc; mg_r]);
 model_mg_yc = mg_yc ./ max_value;
 model_mg_r = mg_r ./ max_value;
 
+model_mk_yc_b = mk_yc == 1;
+model_mk_r_b = mk_r == 1;
+model_mk_yc_c = mk_yc == 2;
+model_mk_r_c = mk_r == 2;
 model_mk_yc = mk_yc & mk_yc;
 model_mk_r = mk_r & mk_r;
 
-[d_mg,j_mg] = dice_jaccard(model_mg_yc, model_mg_r, 0);
-[d_mk,j_mk] = dice_jaccard(model_mk_yc, model_mk_r, 1);
+[d_mg_s,j_mg_s] = dice_jaccard(model_mg_yc, model_mg_r, 0);
+[d_mg_h,j_mg_h] = dice_jaccard(model_mg_yc, model_mg_r, 1);
+[d_mk_b,j_mk_b] = dice_jaccard(model_mk_yc_b, model_mk_r_b, 1);
+[d_mk_c,j_mk_c] = dice_jaccard(model_mk_yc_c, model_mk_r_c, 1);
+[d_mk, j_mk] = dice_jaccard(model_mk_yc, model_mk_r, 1);
 
-disp("dice (mag):  " + d_mg);
-disp("jacc (mag):  " + j_mg);
-disp("dice (mask): " + d_mk);
-disp("jacc (mask): " + j_mk);
-end
+T = table([d_mg_s; d_mg_h; d_mk_b; d_mk_c; d_mk], ...
+          [j_mg_s; j_mg_h; j_mk_b; j_mk_c; j_mk], ...
+          'VariableNames',{'Dice','Jaccard'}, ...
+          'RowName', {'Magnitude (soft)', ...
+                      'Magnitude (hard)', ...
+                      'Mask (brain stem)', ...
+                      'Mask (cerebellum)', ...
+                      'Mask (total)'});
+
+disp(T);
+
 %==============================================================================
