@@ -1,5 +1,5 @@
 function histnormal(refids, figs, jpgs, mat)
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%==========================================================================
 % refids = patient id numbers       vector
 % figs   = choice for figures       0 or 1
 % jpgs   = choice for .jpgs         0 or 1
@@ -27,7 +27,7 @@ function histnormal(refids, figs, jpgs, mat)
 %  inputting more than about 5 ids at once (in a vector) is not recommended
 %
 % Uses chiariTrainingData.mat and MATLAB's Image Processing Toolbox
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%==========================================================================
 %% Defaults
 if nargin<4 || isempty(mat)
      mat=0;
@@ -62,8 +62,12 @@ if figs == 1
         colormap gray
         subplot(3,N,i+N)                    %one row below
         histogram(image)
+        xlabel('gray value')
+        ylabel('number of pixels')
+        title('Histogram of Pixel Values')
         subplot(3,N,i+2*N)                  %two rows below
         cdfplot(reshape(image,[256*256 1]))
+        axis([0 255 0 1])
     end
     % Second Figure: Equalizing Histogram and Displaying Adjusted Images
     figure(2)
@@ -79,8 +83,12 @@ if figs == 1
         colormap gray
         subplot(3,N,i+N)
         histogram(histeq(image))
+        xlabel('gray value')
+        ylabel('number of pixels')
+        title('Histogram of Pixel Values')
         subplot(3,N,i+2*N)
         cdfplot(reshape(histeq(image),[256*256 1]))
+        axis([0 255 0 1])
     end
     % Third Figure: Comparing Original and Adjusted Images
     figure(3)
@@ -95,9 +103,14 @@ if figs == 1
         axis off
         colormap gray
         colorbar
+        title('Original')
         subplot(2,N,i+N)
         histeq(image)
+        axis equal
+        axis off
+        colormap gray
         colorbar
+        title('Normalized')
     end
 end
 %% Printing Images as .jpgs
@@ -120,7 +133,6 @@ if mat == 1
             max(max(images(:,:,refids(i))))));
        images_original(:,:,i) = image;
        images_normal(:,:,i) = histeq(image);
-       
     end
     clear figs; clear jpgs; clear mat; clear N; clear refids; clear image; ... 
         clear images; clear data; clear i; clear filename1; clear filename 2;
