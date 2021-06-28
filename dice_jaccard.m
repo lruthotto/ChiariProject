@@ -14,7 +14,7 @@
 %    - Jaccard simularity
 % ===============================================================================
 
-function varargout = dice_jaccard(varargin)
+function vout = dice_jaccard(varargin)
     if nargin == 0
         runMinimalExample
         return;
@@ -39,8 +39,8 @@ function varargout = dice_jaccard(varargin)
     end
         
     % return simularities
-    varargout{1} = mean(2 * (inter + smooth) / (mask_sum + smooth));
-    varargout{2} = mean((inter + smooth) / (union + smooth));
+    vout{1} = mean(2 * (inter + smooth) / (mask_sum + smooth));
+    vout{2} = mean((inter + smooth) / (union + smooth));
     
     return
 end
@@ -62,7 +62,7 @@ function runMinimalExample
     subplot(2, 1, 2)
     imagesc(data2)
     
-    [d, j] = dice_jaccard(data1, data2, 1);
-    disp("Dice: " + d);
-    disp("Jacc: " + j);
+    dj = dice_jaccard(data1, data2, 1);
+    disp("Dice: " + dj(1));
+    disp("Jacc: " + dj(2));
 end

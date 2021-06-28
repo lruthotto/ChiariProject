@@ -51,13 +51,13 @@ ML_mask = getMultilevel({dataT_mask,dataR_mask},omega,m);
 % More options
 viewImage('reset','viewImage','viewImage2D','colormap',bone(256),'axis','off');
 imgModel('reset','imgModel','splineInter','regularizer','moments','theta',1e-2);
-distance('reset','distance','NGF');
+distance('reset','distance','SSD');
 trafo('reset','trafo','rigid2D');
-regularizer('reset','regularizer','mbElastic','alpha',1e3,'mu',1,'lambda',0);
+regularizer('reset','regularizer','mbHyperElastic','alpha',1e3,'mu',1,'lambda',0);
 
 %% Calculate and display the transformation
 yc = MLIR(ML, 'parametric', false,...
-    'minLevel', 3, 'maxLevel', 8,'plots',1);
+    'minLevel', 5, 'maxLevel', 8,'plots',1);
 
 % Also apply the transformation to the mask
 showResults(ML,yc)
@@ -86,32 +86,41 @@ mg_r = reshape(dataR, [], 1);
 mk_yc = round(nnInter(dataT_mask, omega, ycc) ./ 128);
 mk_r = round(reshape(dataR_mask, [], 1) ./ 128);
 
+mg_t = reshape(dataT, [], 1);
+mk_t = round(reshape(dataT_mask, [], 1) ./ 128);
+
 max_value = max([mg_yc; mg_r]);
-model_mg_yc = mg_yc ./ max_value;
-model_mg_r = mg_r ./ max_value;
 
-model_mk_yc_b = mk_yc == 1;
-model_mk_r_b = mk_r == 1;
-model_mk_yc_c = mk_yc == 2;
-model_mk_r_c = mk_r == 2;
-model_mk_yc = mk_yc & mk_yc;
-model_mk_r = mk_r & mk_r;
+og_mg_data = {mg_t ./ max_value, mg_r ./ max_value};
+og_mk_c_data = {mk_t == 1, mk_r == 1};
+og_mk_b_data = {mk_t == 2, mk_r == 2};
+og_mk_t_data = {mk_t & mk_t, mk_r & mk_r};
 
-[d_mg_s,j_mg_s] = dice_jaccard(model_mg_yc, model_mg_r, 0);
-[d_mg_h,j_mg_h] = dice_jaccard(model_mg_yc, model_mg_r, 1);
-[d_mk_b,j_mk_b] = dice_jaccard(model_mk_yc_b, model_mk_r_b, 1);
-[d_mk_c,j_mk_c] = dice_jaccard(model_mk_yc_c, model_mk_r_c, 1);
-[d_mk, j_mk] = dice_jaccard(model_mk_yc, model_mk_r, 1);
+tn_mg_data = {mg_yc ./ max_value, mg_r ./ max_value};
+tn_mk_c_data = {mk_yc == 1, mk_r == 1};
+tn_mk_b_data = {mk_yc == 2, mk_r == 2};
+tn_mk_t_data = {mk_yc & mk_yc, mk_r & mk_r};
 
-T = table([d_mg_s; d_mg_h; d_mk_b; d_mk_c; d_mk], ...
-          [j_mg_s; j_mg_h; j_mk_b; j_mk_c; j_mk], ...
-          'VariableNames',{'Dice','Jaccard'}, ...
-          'RowName', {'Magnitude (soft)', ...
-                      'Magnitude (hard)', ...
+og_mg_s = dice_jaccard(og_mg_data{1}, og_mg_data{2}, 0);
+og_mk_b = dice_jaccard(og_mk_b_data{1}, og_mk_b_data{2}, 1);
+og_mk_c = dice_jaccard(og_mk_c_data{1}, og_mk_c_data{2}, 1);
+og_mk_t = dice_jaccard(og_mk_t_data{1}, og_mk_t_data{2}, 1);
+
+tn_mg_s = dice_jaccard(tn_mg_data{1}, tn_mg_data{2}, 0);
+tn_mk_b = dice_jaccard(tn_mk_b_data{1}, tn_mk_b_data{2}, 1);
+tn_mk_c = dice_jaccard(tn_mk_c_data{1}, tn_mk_c_data{2}, 1);
+tn_mk_t = dice_jaccard(tn_mk_t_data{1}, tn_mk_t_data{2}, 1);
+
+T = table([og_mg_s{1}; og_mk_b{1}; og_mk_c{1}; og_mk_t{1}], ...
+          [tn_mg_s{1}; tn_mk_b{1}; tn_mk_c{1}; tn_mk_t{1}], ...
+          [og_mg_s{2}; og_mk_b{2}; og_mk_c{2}; og_mk_t{2}], ...
+          [tn_mg_s{2}; tn_mk_b{2}; tn_mk_c{2}; tn_mk_t{2}], ...
+          'VariableNames',{'Original Dice', 'Transformed Dice', 'Original Jaccard', 'Transformed Jaccard'}, ...
+          'RowName', {'Magnitude', ...
                       'Mask (brain stem)', ...
                       'Mask (cerebellum)', ...
                       'Mask (total)'});
 
 disp(T);
-
+% table2latex(T, 'table');
 %==============================================================================
