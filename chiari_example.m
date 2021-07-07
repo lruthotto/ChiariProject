@@ -10,117 +10,146 @@
 %   - regularizer          mbElastic
 %   - optimization         Gauss-Newton
 % ===============================================================================
-function[] = chiari_example(Template_ID, Reference_ID) 
+function [] = chiari_example(Reference_ID, Template_ID) 
+    %% Initial Setup
+    close all
+    omega     = [0,20,0,25];
+    m         = [256,256];
+    viewPara  = {'viewImage','viewImage2D','colormap','bone(256)'};
+    imgPara   = {'imgModel','linearInter'};
 
-%% Defaults 
-if nargin<2 || isempty(Reference_ID) 
-     Reference_ID = 28; 
-end 
-if nargin<1 || isempty(Template_ID) 
-     Template_ID = 18; 
-end 
+    % Data
+    data = load('chiariTrainingData.mat');
+    normData = load('normalizedChiariTraining.mat');
+    images = normData.images_normal;
+    masks = data.masksTrain;
+    
+    orient = @(I) flipud(I)';
+    mask_scale = 128;
+    
+    %% Find the most similar template
+    if nargin < 2
+        if nargin < 1, Reference_ID = 28; end
+        
+        dataR = orient(images(:,:,Reference_ID));
+        
+        min_ngf = intmax;
+        min_index = -1;
+        
+        for i = 1:52
+            if i == Reference_ID
+                continue
+            end
+            
+            dataT = orient(images(:,:,i));
+    
+            xc = getCellCenteredGrid(omega,m);
+            Tc = nnInter(dataT,omega,xc);
+            Rc = nnInter(dataR,omega,xc);
 
-%% Initial Setup
-close all
-omega     = [0,20,0,25];
-m         = [256,256];
-viewPara  = {'viewImage','viewImage2D','colormap','bone(256)'};
-imgPara   = {'imgModel','linearInter'};
+            Dc = SSD(Tc, Rc, omega, m);
+            
+            if Dc < min_ngf
+                min_ngf = Dc;
+                min_index = i;
+            end
+        end
+        
+        Template_ID = min_index;
+    end
 
-% Data
-data = load('chiariTrainingData.mat');
-normData = load('normalizedChiariTraining.mat');
-images = normData.images_normal;
-masks = data.masksTrain;
+    dataT = orient(images(:,:,Template_ID));
+    dataR = orient(images(:,:,Reference_ID));
+    dataT_mask = orient(masks(:,:,Template_ID));
+    dataR_mask = orient(masks(:,:,Reference_ID));
+    
+    %% Image registration options
+    viewImage('reset','viewImage','viewImage2D','colormap',bone(256),'axis','off');
+    imgModel('reset','imgModel','splineInter','regularizer','moments','theta',1e-2);
+    distance('reset','distance','SSD');
+    trafo('reset','trafo','affine2D');
+    regularizer('reset','regularizer','mbHyperElastic','alpha',1000,'mu',1,'lambda',0);
 
-orient = @(I) flipud(I)';
-mask_scale = 128;
+    %% Multilevel registration
+    ML = getMultilevel({dataT,dataR},omega,m);
+    ML_mask = getMultilevel({mask_scale .* dataT_mask, mask_scale .* dataR_mask},omega,m);
 
-dataT = orient(images(:,:,Template_ID));
-dataR = orient(images(:,:,Reference_ID));
-dataT_mask = mask_scale .* orient(masks(:,:,Template_ID));
-dataR_mask = mask_scale .* orient(masks(:,:,Reference_ID));
+    %% Calculate and display the transformation
+    yc = MLIR(ML, 'parametric', false,...
+        'minLevel', 5, 'maxLevel', 8,'plots',1);
+    
+    % Also apply the transformation to the mask
+    showResults(ML,yc)
+    showResults(ML_mask, yc)
+    
+    disp("Reference: " + Reference_ID)
+    disp("Template:  " + Template_ID)
 
-% Multilevel representation
-viewImage('reset',viewPara{:});
-imgModel('reset',imgPara{:});
+    %% Compute NGF
+    xc = getCellCenteredGrid(omega,m);
+    Tc = nnInter(min(dataT_mask, 1), omega, xc);
+    Tc_y = nnInter(min(dataT_mask, 1), omega, center(yc, m));
+    Rc = nnInter(dataR,omega,xc);
 
-ML = getMultilevel({dataT,dataR},omega,m,'fig',2);
-ML_mask = getMultilevel({dataT_mask,dataR_mask},omega,m);
+    Dc = NGF(Tc, Rc, omega, m, 'edge', i);
+    Dc_y = NGF(Tc_y, Rc, omega, m, 'edge', i);
 
-% More options
-viewImage('reset','viewImage','viewImage2D','colormap',bone(256),'axis','off');
-imgModel('reset','imgModel','splineInter','regularizer','moments','theta',1e-2);
-distance('reset','distance','SSD');
-trafo('reset','trafo','rigid2D');
-regularizer('reset','regularizer','mbHyperElastic','alpha',1e3,'mu',1,'lambda',0);
+    disp("NGF Before: " + Dc)
+    disp("NGF After:  " + Dc_y)
+    
+    %% Plotting the transformed mask
 
-%% Calculate and display the transformation
-yc = MLIR(ML, 'parametric', false,...
-    'minLevel', 5, 'maxLevel', 8,'plots',1);
+    % %Use the transformation function on the template mask
+    % ycc = center(yc, m); %change to a centered grid
+    % [Tmask] = nnInter(dataT_mask,omega,ycc);
+    % 
+    % figure(); clf;
+    % %Reference image
+    % viewImage(dataR,omega,m);
+    % hold on
+    % %Plot transformed mask
+    % viewContour2D(Tmask, omega, m);
+    % axis equal
+    % colorbar
 
-% Also apply the transformation to the mask
-showResults(ML,yc)
-showResults(ML_mask, yc)
+    %% Analyze segmentation quality
+    ycc = center(yc, m);
 
-%% Plotting the transformed mask
+    create_table(dataT_mask, dataR_mask, omega, ycc)
+    
+end
 
-% %Use the transformation function on the template mask
-% ycc = center(yc, m); %change to a centered grid
-% [Tmask] = nnInter(dataT_mask,omega,ycc);
-% 
-% figure(); clf;
-% %Reference image
-% viewImage(dataR,omega,m);
-% hold on
-% %Plot transformed mask
-% viewContour2D(Tmask, omega, m);
-% axis equal
-% colorbar
+%% Function for printing dice/jaccard
+function [] = create_table(dataT_mask, dataR_mask, omega, ycc)
+    mk_yc = nnInter(dataT_mask, omega, ycc);
+    mk_t = reshape(dataT_mask, [], 1);
+    mk_r = reshape(dataR_mask, [], 1);
 
-%% Soft metric of segmentation quality
-ycc = center(yc, m);
+    og_mk_c_data = {mk_t == 1, mk_r == 1};
+    og_mk_b_data = {mk_t == 2, mk_r == 2};
+    og_mk_t_data = {mk_t & mk_t, mk_r & mk_r};
 
-mg_yc = nnInter(dataT, omega, ycc);
-mg_r = reshape(dataR, [], 1);
-mk_yc = round(nnInter(dataT_mask, omega, ycc) ./ 128);
-mk_r = round(reshape(dataR_mask, [], 1) ./ 128);
+    tn_mk_c_data = {mk_yc == 1, mk_r == 1};
+    tn_mk_b_data = {mk_yc == 2, mk_r == 2};
+    tn_mk_t_data = {mk_yc & mk_yc, mk_r & mk_r};
 
-mg_t = reshape(dataT, [], 1);
-mk_t = round(reshape(dataT_mask, [], 1) ./ 128);
+    og_mk_b = dice_jaccard(og_mk_b_data{1}, og_mk_b_data{2}, 1);
+    og_mk_c = dice_jaccard(og_mk_c_data{1}, og_mk_c_data{2}, 1);
+    og_mk_t = dice_jaccard(og_mk_t_data{1}, og_mk_t_data{2}, 1);
 
-max_value = max([mg_yc; mg_r]);
+    tn_mk_b = dice_jaccard(tn_mk_b_data{1}, tn_mk_b_data{2}, 1);
+    tn_mk_c = dice_jaccard(tn_mk_c_data{1}, tn_mk_c_data{2}, 1);
+    tn_mk_t = dice_jaccard(tn_mk_t_data{1}, tn_mk_t_data{2}, 1);
 
-og_mg_data = {mg_t ./ max_value, mg_r ./ max_value};
-og_mk_c_data = {mk_t == 1, mk_r == 1};
-og_mk_b_data = {mk_t == 2, mk_r == 2};
-og_mk_t_data = {mk_t & mk_t, mk_r & mk_r};
+    T = table([og_mk_b{1}; og_mk_c{1}; og_mk_t{1}], ...
+              [tn_mk_b{1}; tn_mk_c{1}; tn_mk_t{1}], ...
+              [og_mk_b{2}; og_mk_c{2}; og_mk_t{2}], ...
+              [tn_mk_b{2}; tn_mk_c{2}; tn_mk_t{2}], ...
+              'VariableNames',{'Original Dice', 'Transformed Dice', 'Original Jaccard', 'Transformed Jaccard'}, ...
+              'RowName', {'Mask (brain stem)', ...
+                          'Mask (cerebellum)', ...
+                          'Mask (total)'});
 
-tn_mg_data = {mg_yc ./ max_value, mg_r ./ max_value};
-tn_mk_c_data = {mk_yc == 1, mk_r == 1};
-tn_mk_b_data = {mk_yc == 2, mk_r == 2};
-tn_mk_t_data = {mk_yc & mk_yc, mk_r & mk_r};
-
-og_mg_s = dice_jaccard(og_mg_data{1}, og_mg_data{2}, 0);
-og_mk_b = dice_jaccard(og_mk_b_data{1}, og_mk_b_data{2}, 1);
-og_mk_c = dice_jaccard(og_mk_c_data{1}, og_mk_c_data{2}, 1);
-og_mk_t = dice_jaccard(og_mk_t_data{1}, og_mk_t_data{2}, 1);
-
-tn_mg_s = dice_jaccard(tn_mg_data{1}, tn_mg_data{2}, 0);
-tn_mk_b = dice_jaccard(tn_mk_b_data{1}, tn_mk_b_data{2}, 1);
-tn_mk_c = dice_jaccard(tn_mk_c_data{1}, tn_mk_c_data{2}, 1);
-tn_mk_t = dice_jaccard(tn_mk_t_data{1}, tn_mk_t_data{2}, 1);
-
-T = table([og_mg_s{1}; og_mk_b{1}; og_mk_c{1}; og_mk_t{1}], ...
-          [tn_mg_s{1}; tn_mk_b{1}; tn_mk_c{1}; tn_mk_t{1}], ...
-          [og_mg_s{2}; og_mk_b{2}; og_mk_c{2}; og_mk_t{2}], ...
-          [tn_mg_s{2}; tn_mk_b{2}; tn_mk_c{2}; tn_mk_t{2}], ...
-          'VariableNames',{'Original Dice', 'Transformed Dice', 'Original Jaccard', 'Transformed Jaccard'}, ...
-          'RowName', {'Magnitude', ...
-                      'Mask (brain stem)', ...
-                      'Mask (cerebellum)', ...
-                      'Mask (total)'});
-
-disp(T);
-% table2latex(T, 'table');
+    disp(T);
+end
 %==============================================================================
