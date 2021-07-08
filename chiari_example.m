@@ -2,27 +2,26 @@
 % 
 %  Example for 2D registration of chiari data,
 %
-%   - data                 chiari, omega=(0,20)x(0,25), level=3:7, m=[256,256]
+%   - data                 chiari, omega=(0,1)x(0,1), level=5:7, m=[256,256]
 %   - viewer               viewImage2D
 %   - image model          splineInter
 %   - distance             SSD
-%   - pre-registration     rigid2D
-%   - regularizer          mbElastic
+%   - pre-registration     affine2D
+%   - regularizer          mbHyperElastic,  
 %   - optimization         Gauss-Newton
 % ===============================================================================
 function [] = chiari_example(Reference_ID, Template_ID) 
     %% Initial Setup
     close all
-    omega     = [0,20,0,25];
+    omega     = [0,1,0,1];
     m         = [256,256];
     viewPara  = {'viewImage','viewImage2D','colormap','bone(256)'};
     imgPara   = {'imgModel','linearInter'};
 
     % Data
-    data = load('chiariTrainingData.mat');
-    normData = load('normalizedChiariTraining.mat');
-    images = normData.images_normal;
-    masks = data.masksTrain;
+    data = load('normalizedChiariTraining.mat');
+    images = data.images_normal;
+    masks = data.masks;
     
     orient = @(I) flipud(I)';
     mask_scale = 128;
@@ -33,7 +32,7 @@ function [] = chiari_example(Reference_ID, Template_ID)
         
         dataR = orient(images(:,:,Reference_ID));
         
-        min_ngf = intmax;
+        min_dist = intmax;
         min_index = -1;
         
         for i = 1:52
@@ -49,8 +48,8 @@ function [] = chiari_example(Reference_ID, Template_ID)
 
             Dc = SSD(Tc, Rc, omega, m);
             
-            if Dc < min_ngf
-                min_ngf = Dc;
+            if Dc < min_dist
+                min_dist = Dc;
                 min_index = i;
             end
         end
@@ -64,7 +63,7 @@ function [] = chiari_example(Reference_ID, Template_ID)
     dataR_mask = orient(masks(:,:,Reference_ID));
     
     %% Image registration options
-    viewImage('reset','viewImage','viewImage2D','colormap',bone(256),'axis','off');
+    viewImage('reset','viewImage','viewImage2D','colormap', bone(256),'axis','off');
     imgModel('reset','imgModel','splineInter','regularizer','moments','theta',1e-2);
     distance('reset','distance','SSD');
     trafo('reset','trafo','affine2D');
