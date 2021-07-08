@@ -45,6 +45,7 @@ end
 N = length(refids);
 data = load('chiariTrainingData.mat');
 images = data.imagesTrain;
+masks = data.masksTrain;
 
 %% Figures
 if figs == 1
@@ -134,8 +135,7 @@ if mat == 1
        images_original(:,:,i) = image;
        images_normal(:,:,i) = histeq(image);
     end
-    clear figs; clear jpgs; clear mat; clear N; clear refids; clear image; ... 
-        clear images; clear data; clear i; clear filename1; clear filename 2;
+    clearvars -except images_original images_normal masks
     save('normalizedChiariTraining.mat')
 end
 
