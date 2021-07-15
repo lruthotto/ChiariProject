@@ -2,12 +2,12 @@
 % 
 %  Example for 2D registration of chiari data,
 %
-%   - data                 chiari, omega=(0,1)x(0,1), level=5:7, m=[256,256]
+%   - data                 chiari, omega=(0,1)x(0,1), level=5:8, m=[256,256]
 %   - viewer               viewImage2D
 %   - image model          splineInter
 %   - distance             SSD
 %   - pre-registration     affine2D
-%   - regularizer          mbHyperElastic,  
+%   - regularizer          mbHyperElastic  
 %   - optimization         Gauss-Newton
 % ===============================================================================
 function [] = chiari_example(Reference_ID, Template_ID) 
@@ -53,7 +53,7 @@ function [] = chiari_example(Reference_ID, Template_ID)
                 min_index = i;
             end
         end
-        
+        disp(min_dist)
         Template_ID = min_index;
     end
 
@@ -67,7 +67,7 @@ function [] = chiari_example(Reference_ID, Template_ID)
     imgModel('reset','imgModel','splineInter','regularizer','moments','theta',1e-2);
     distance('reset','distance','SSD');
     trafo('reset','trafo','affine2D');
-    regularizer('reset','regularizer','mbHyperElastic','alpha',1000,'mu',1,'lambda',0);
+    regularizer('reset','regularizer','mbHyperElastic','alpha',500,'mu',1,'lambda',0);
 
     %% Multilevel registration
     ML = getMultilevel({dataT,dataR},omega,m);
@@ -85,16 +85,16 @@ function [] = chiari_example(Reference_ID, Template_ID)
     disp("Template:  " + Template_ID)
 
     %% Compute NGF
-    xc = getCellCenteredGrid(omega,m);
-    Tc = nnInter(min(dataT_mask, 1), omega, xc);
-    Tc_y = nnInter(min(dataT_mask, 1), omega, center(yc, m));
-    Rc = nnInter(dataR,omega,xc);
-
-    Dc = NGF(Tc, Rc, omega, m, 'edge', i);
-    Dc_y = NGF(Tc_y, Rc, omega, m, 'edge', i);
-
-    disp("NGF Before: " + Dc)
-    disp("NGF After:  " + Dc_y)
+%     xc = getCellCenteredGrid(omega,m);
+%     Tc = nnInter(min(dataT_mask, 1), omega, xc);
+%     Tc_y = nnInter(min(dataT_mask, 1), omega, center(yc, m));
+%     Rc = nnInter(dataR,omega,xc);
+% 
+%     Dc = NGF(Tc, Rc, omega, m, 'edge', 1e-6);
+%     Dc_y = NGF(Tc_y, Rc, omega, m, 'edge', 1e-6);
+%
+%     disp("NGF Before: " + Dc)
+%     disp("NGF After:  " + Dc_y)
     
     %% Plotting the transformed mask
 
