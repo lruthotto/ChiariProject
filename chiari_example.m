@@ -10,32 +10,37 @@
 %   - regularizer          mbHyperElastic  
 %   - optimization         Gauss-Newton
 % ===============================================================================
-function [] = chiari_example(Reference_ID, Template_ID) 
+function vout = chiari_example(Reference_ID, Template_ID, varargin) 
     %% Initial Setup
     close all
     omega     = [0,1,0,1];
     m         = [256,256];
+    plots     = 1;
     viewPara  = {'viewImage','viewImage2D','colormap','bone(256)'};
     imgPara   = {'imgModel','linearInter'};
 
+    for k=1:2:length(varargin),    % overwrite defaults  
+        eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+    end;
+    
     % Data
     data = load('normalizedChiariTraining.mat');
     images = data.images_normal;
-    masks = data.masks;
+    masks = data.images_masks;
     
     orient = @(I) flipud(I)';
     mask_scale = 128;
     
     %% Find the most similar template
     if nargin < 2
-        if nargin < 1, Reference_ID = 28; end
+        if nargin < 1, Reference_ID = 6; end
         
         dataR = orient(images(:,:,Reference_ID));
         
         min_dist = intmax;
         min_index = -1;
         
-        for i = 1:52
+        for i = 1:size(images, 3)
             if i == Reference_ID
                 continue
             end
@@ -65,21 +70,67 @@ function [] = chiari_example(Reference_ID, Template_ID)
     %% Image registration options
     viewImage('reset','viewImage','viewImage2D','colormap', bone(256),'axis','off');
     imgModel('reset','imgModel','splineInter','regularizer','moments','theta',1e-2);
-    distance('reset','distance','SSD');
     trafo('reset','trafo','affine2D');
+    distance('reset','distance','SSD');
     regularizer('reset','regularizer','mbHyperElastic','alpha',500,'mu',1,'lambda',0);
-
-    %% Multilevel registration
-    ML = getMultilevel({dataT,dataR},omega,m);
-    ML_mask = getMultilevel({mask_scale .* dataT_mask, mask_scale .* dataR_mask},omega,m);
-
+    
+    %% Get multilevels
+    ML = getMultilevel({dataT,dataR},omega,m, 'fig', 2*plots);
+    ML_mask = getMultilevel({mask_scale .* dataT_mask, mask_scale .* dataR_mask},omega,m, 'fig', 2*plots);
+    
+     %% build a weighted SSD distance that ignores background
+%     w = 7;
+%     xc = reshape(getCellCenteredGrid(omega,m),[],2);
+%     c  = [0.59 0.45];
+%     dataW = exp(- w*(xc(:,1)-c(1)).^2 - w*(xc(:,2)-c(2)).^2)+.1;
+% 
+%     %%
+%     figure(1);clf;
+%     subplot(1,2,1);
+%     viewImage(dataR,omega,m);
+%     title('dataR - reference image');
+%     colorbar
+% 
+%     subplot(1,2,2);
+%     viewImage2Dsc(dataW,omega,m,'caxis',[0 1])
+%     title('dataW - weights');
+%     colorbar;
+% 
+%     %% generate multilevel representation of data images and weights
+%     [ML,minLevel,maxLevel] = getMultilevel({dataT,dataR,dataW},omega,m,'names',{'T','R','W'});
+%     ML_mask = getMultilevel({mask_scale .* dataT_mask, mask_scale .* dataR_mask},omega,m);
+% 
+%     % extract multilevel representation of weights
+%     %
+%     % 1) get discrete data of weighs from ML
+%     % 2) get coefficients and evaluate image model on grids
+%     % 3) store weights for each level as diagonal matrix 
+%     % 4) provide multi-level representation of weights to distance
+%     %
+% 
+%     MLw = cell(maxLevel,1);
+%     for lvl=minLevel:maxLevel
+%         WD = ML{lvl}.W;  % 1) 
+%         WC = WD;         % 2) coefficients for linear inter
+%         Wc = linearInter(WC,omega,getCellCenteredGrid(omega,ML{lvl}.m)); % 3)
+%         MLw{lvl}.Wc = diag(sparse(Wc)); 
+%         MLw{lvl}.m  = ML{lvl}.m;
+%         ML{lvl} = rmfield(ML{lvl},'W');
+%     end
+% 
+%     distance('reset','distance','SSD','weights',MLw);
+    
     %% Calculate and display the transformation
     yc = MLIR(ML, 'parametric', false,...
-        'minLevel', 5, 'maxLevel', 8,'plots',1);
+        'minLevel', 5, 'maxLevel', 8,'plots',plots);
+    
+    vout{1} = yc;
     
     % Also apply the transformation to the mask
-    showResults(ML,yc)
-    showResults(ML_mask, yc)
+    if plots
+        showResults(ML,yc)
+        showResults(ML_mask, yc)
+    end
     
     disp("Reference: " + Reference_ID)
     disp("Template:  " + Template_ID)
@@ -98,24 +149,23 @@ function [] = chiari_example(Reference_ID, Template_ID)
     
     %% Plotting the transformed mask
 
-    % %Use the transformation function on the template mask
-    % ycc = center(yc, m); %change to a centered grid
-    % [Tmask] = nnInter(dataT_mask,omega,ycc);
-    % 
-    % figure(); clf;
-    % %Reference image
-    % viewImage(dataR,omega,m);
-    % hold on
-    % %Plot transformed mask
-    % viewContour2D(Tmask, omega, m);
-    % axis equal
-    % colorbar
+%     %Use the transformation function on the template mask
+%     ycc = center(yc, m); %change to a centered grid
+%     [Tmask] = nnInter(dataT_mask,omega,ycc);
+%     
+%     figure(); clf;
+%     %Reference image
+%     viewImage(dataR,omega,m);
+%     hold on
+%     %Plot transformed mask
+%     viewContour2D(Tmask, omega, m);
+%     axis equal
+%     colorbar
 
     %% Analyze segmentation quality
     ycc = center(yc, m);
 
     create_table(dataT_mask, dataR_mask, omega, ycc)
-    
 end
 
 %% Function for printing dice/jaccard
