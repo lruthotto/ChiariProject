@@ -128,14 +128,16 @@ end
 %% Creating a .mat file with the new images
 if mat == 1
     images_original = zeros(256,256,N);
-    images_normal = zeros (256,256,N);
+    images_normal = zeros(256,256,N);
+    images_masks = zeros(256,256,N);
     for i = 1:N
        image = uint8(256 .* (images(:,:,refids(i)) ./ ...     %max adjusted image
             max(max(images(:,:,refids(i))))));
        images_original(:,:,i) = image;
        images_normal(:,:,i) = histeq(image);
+       images_masks(:,:,i) = masks(:,:,i);
     end
-    clearvars -except images_original images_normal masks
+    clearvars -except images_original images_normal images_masks
     save('normalizedChiariTraining.mat')
 end
 
