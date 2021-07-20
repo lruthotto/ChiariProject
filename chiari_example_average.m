@@ -6,14 +6,14 @@ function [] = chiari_example_average(Reference_ID)
     % Data
     data = load('normalizedChiariTraining.mat');
     images = data.images_normal;
-    masks = data.masks;
+    masks = data.images_masks;
     
     omega     = [0,1,0,1];
     m         = [256,256];
     
     avg_w_rg  = 1;
     avg_thr   = 0.6;
-    n         = 30;
+    n         = 5;
     d_size    = size(images, 3);
     
     ssd_list = zeros(size(images, 3), 2);
@@ -38,22 +38,22 @@ function [] = chiari_example_average(Reference_ID)
     top_picks = ssd_sorted(2:n+1,2);
     
     %% Run the image registration and store it in a file for future use
-    if ~exist([num2str(Reference_ID) '_yc.mat'])
-        yc_list = cell(n, 1);
+    if ~exist([num2str(Reference_ID) '_Tc.mat'])
+        Tc_list = cell(n, 1);
 
         for i = 1:n
             c = top_picks(i);
-            yc_list(i) = chiari_example(Reference_ID, c, 'plots', 0);
+            Tc_list(i) = chiari_example(Reference_ID, 'Template_ID', c, 'plots', 0);
         end
-        save([num2str(Reference_ID) '_yc.mat'], 'yc_list')
+        save([num2str(Reference_ID) '_Tc.mat'], 'Tc_list')
     else
-        yc_list = load([num2str(Reference_ID) '_yc.mat']).yc_list;
-        if size(yc_list) < n
-            for i = size(yc_list):n
+        Tc_list = load([num2str(Reference_ID) '_Tc.mat']).Tc_list;
+        if size(Tc_list) < n
+            for i = size(Tc_list):n
                 c = top_picks(i);
-                yc_list(i) = chiari_example(Reference_ID, 'Template_ID', c, 'plots', 0);
+                Tc_list(i) = chiari_example(Reference_ID, 'Template_ID', c, 'plots', 0);
             end
-            save([num2str(Reference_ID) '_yc.mat'], 'yc_list')
+            save([num2str(Reference_ID) '_Tc.mat'], 'Tc_list')
         end
     end
     
@@ -63,10 +63,7 @@ function [] = chiari_example_average(Reference_ID)
     c_sum = zeros(m(1)*m(2), 1);
     b_sum = zeros(m(1)*m(2), 1);
     for i = 1:n
-        yc = yc_list{i};
-        dataT_mask = orient(masks(:,:,top_picks(i)));
-        
-        Tc = nnInter(dataT_mask, omega, center(yc, m));
+        Tc = Tc_list{i};
         
         c_sum = c_sum + avg_weights(i) .* (Tc == 1);
         b_sum = b_sum + avg_weights(i) .* (Tc == 2);

@@ -145,7 +145,9 @@ function vout = chiari_example(Reference_ID, varargin)
     yc = MLIR(ML, 'parametric', false,...
         'minLevel', 5, 'maxLevel', 8,'plots',plots);
     
-    vout{1} = yc;
+    Tc = linearInter(dataT_mask, omega, center(yc, m));
+    
+    vout{1} = Tc;
     
     % Also apply the transformation to the mask
     if plots
