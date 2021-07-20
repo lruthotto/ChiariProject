@@ -10,14 +10,22 @@
 %   - regularizer          mbHyperElastic  
 %   - optimization         Gauss-Newton
 % ===============================================================================
-function vout = chiari_example(Reference_ID, Template_ID, varargin) 
+function vout = chiari_example(Reference_ID, varargin) 
     %% Initial Setup
-    close all
-    omega     = [0,1,0,1];
-    m         = [256,256];
-    plots     = 1;
-    viewPara  = {'viewImage','viewImage2D','colormap','bone(256)'};
-    imgPara   = {'imgModel','linearInter'};
+    close all;
+    omega        = [0,1,0,1];
+    m            = [256,256];
+    default_ref  = 6;
+    
+    viewPara     = {'viewImage','viewImage2D','colormap','bone(256)'};
+    imgPara      = {'imgModel','linearInter'};
+    
+    Template_ID  = -1;
+    plots        = 1;
+    weighted     = 0;
+    weight_scale = 25;
+    min_level    = 5;
+    max_level    = 8;
 
     for k=1:2:length(varargin),    % overwrite defaults  
         eval([varargin{k},'=varargin{',int2str(k+1),'};']);
@@ -30,13 +38,35 @@ function vout = chiari_example(Reference_ID, Template_ID, varargin)
     
     orient = @(I) flipud(I)';
     mask_scale = 128;
+
+    if nargin < 1, Reference_ID = default_ref; end
+    dataR = orient(images(:,:,Reference_ID));
+    dataR_mask = orient(masks(:,:,Reference_ID));
+    
+    %% Image registration options
+    viewImage('reset','viewImage','viewImage2D','colormap', bone(256),'axis','off');
+    imgModel('reset','imgModel','splineInter','regularizer','moments','theta',1e-2);
+    trafo('reset','trafo','affine2D');
+    regularizer('reset','regularizer','mbHyperElastic','alpha',500,'mu',1,'lambda',0);
+    
+    %% Calculate weights
+    if weighted
+        FAIRfigure([]); clf;
+        viewImage(dataR, omega, m)
+        focus_center = ginput(1);
+        close;
+        
+        xc = reshape(getCellCenteredGrid(omega,m),[],2);
+        c  = focus_center;
+        w  = weight_scale;
+        dataW = exp(- w*(xc(:,1)-c(1)).^2 - w*(xc(:,2)-c(2)).^2)+.1;
+        
+        Wt = linearInter(dataW,omega,getCellCenteredGrid(omega,m));
+        Wc = diag(sparse(Wt));
+    end
     
     %% Find the most similar template
-    if nargin < 2
-        if nargin < 1, Reference_ID = 6; end
-        
-        dataR = orient(images(:,:,Reference_ID));
-        
+    if Template_ID == -1       
         min_dist = intmax;
         min_index = -1;
         
@@ -48,77 +78,68 @@ function vout = chiari_example(Reference_ID, Template_ID, varargin)
             dataT = orient(images(:,:,i));
     
             xc = getCellCenteredGrid(omega,m);
-            Tc = nnInter(dataT,omega,xc);
-            Rc = nnInter(dataR,omega,xc);
-
-            Dc = SSD(Tc, Rc, omega, m);
+            Tc = linearInter(dataT,omega,xc);
+            Rc = linearInter(dataR,omega,xc);
             
+            if weighted
+                Dc = SSD(Tc, Rc, omega, m, 'weights', Wc);
+            else
+                Dc = SSD(Tc, Rc, omega, m);
+            end
+
             if Dc < min_dist
                 min_dist = Dc;
                 min_index = i;
             end
         end
-        disp(min_dist)
+        
         Template_ID = min_index;
     end
 
     dataT = orient(images(:,:,Template_ID));
-    dataR = orient(images(:,:,Reference_ID));
     dataT_mask = orient(masks(:,:,Template_ID));
-    dataR_mask = orient(masks(:,:,Reference_ID));
-    
-    %% Image registration options
-    viewImage('reset','viewImage','viewImage2D','colormap', bone(256),'axis','off');
-    imgModel('reset','imgModel','splineInter','regularizer','moments','theta',1e-2);
-    trafo('reset','trafo','affine2D');
-    distance('reset','distance','SSD');
-    regularizer('reset','regularizer','mbHyperElastic','alpha',500,'mu',1,'lambda',0);
     
     %% Get multilevels
-    ML = getMultilevel({dataT,dataR},omega,m, 'fig', 2*plots);
-    ML_mask = getMultilevel({mask_scale .* dataT_mask, mask_scale .* dataR_mask},omega,m, 'fig', 2*plots);
-    
-     %% build a weighted SSD distance that ignores background
-%     w = 7;
-%     xc = reshape(getCellCenteredGrid(omega,m),[],2);
-%     c  = [0.59 0.45];
-%     dataW = exp(- w*(xc(:,1)-c(1)).^2 - w*(xc(:,2)-c(2)).^2)+.1;
-% 
-%     %%
-%     figure(1);clf;
-%     subplot(1,2,1);
-%     viewImage(dataR,omega,m);
-%     title('dataR - reference image');
-%     colorbar
-% 
-%     subplot(1,2,2);
-%     viewImage2Dsc(dataW,omega,m,'caxis',[0 1])
-%     title('dataW - weights');
-%     colorbar;
-% 
-%     %% generate multilevel representation of data images and weights
-%     [ML,minLevel,maxLevel] = getMultilevel({dataT,dataR,dataW},omega,m,'names',{'T','R','W'});
-%     ML_mask = getMultilevel({mask_scale .* dataT_mask, mask_scale .* dataR_mask},omega,m);
-% 
-%     % extract multilevel representation of weights
-%     %
-%     % 1) get discrete data of weighs from ML
-%     % 2) get coefficients and evaluate image model on grids
-%     % 3) store weights for each level as diagonal matrix 
-%     % 4) provide multi-level representation of weights to distance
-%     %
-% 
-%     MLw = cell(maxLevel,1);
-%     for lvl=minLevel:maxLevel
-%         WD = ML{lvl}.W;  % 1) 
-%         WC = WD;         % 2) coefficients for linear inter
-%         Wc = linearInter(WC,omega,getCellCenteredGrid(omega,ML{lvl}.m)); % 3)
-%         MLw{lvl}.Wc = diag(sparse(Wc)); 
-%         MLw{lvl}.m  = ML{lvl}.m;
-%         ML{lvl} = rmfield(ML{lvl},'W');
-%     end
-% 
-%     distance('reset','distance','SSD','weights',MLw);
+    if weighted == 0
+        ML = getMultilevel({dataT,dataR},omega,m,'fig',2*plots);
+        ML_mask = getMultilevel({mask_scale .* dataT_mask, mask_scale .* dataR_mask},omega,m,'fig',2*plots);
+        distance('reset','distance','SSD');
+    else
+        %% Plot the weights
+        figure(); clf;
+        subplot(1,2,1);
+        viewImage(dataR,omega,m);
+        title('dataR - reference image');
+        colorbar
+
+        subplot(1,2,2);
+        viewImage2Dsc(dataW,omega,m,'caxis',[0 1])
+        title('dataW - weights');
+        colorbar;
+
+        %% Generate multilevel representation of data images and weights
+        ML = getMultilevel({dataT,dataR,dataW},omega,m,'names',{'T','R','W'},'fig',2*plots);
+        ML_mask = getMultilevel({mask_scale .* dataT_mask, mask_scale .* dataR_mask},omega,m,'fig',2*plots);
+
+        % Extract multilevel representation of weights
+        %
+        % 1) get discrete data of weighs from ML
+        % 2) get coefficients and evaluate image model on grids
+        % 3) store weights for each level as diagonal matrix 
+        % 4) provide multi-level representation of weights to distance
+
+        MLw = cell(max_level,1);
+        for lvl=min_level:max_level
+            WD = ML{lvl}.W;  % 1) 
+            WC = WD;         % 2) coefficients for linear inter
+            Wc = linearInter(WC,omega,getCellCenteredGrid(omega,ML{lvl}.m)); % 3)
+            MLw{lvl}.Wc = diag(sparse(Wc)); 
+            MLw{lvl}.m  = ML{lvl}.m;
+            ML{lvl} = rmfield(ML{lvl},'W');
+        end
+
+        distance('reset','distance','SSD','weights',MLw);
+    end
     
     %% Calculate and display the transformation
     yc = MLIR(ML, 'parametric', false,...

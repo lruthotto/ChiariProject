@@ -1,6 +1,7 @@
 function [] = chiari_example_average(Reference_ID)
+    %% Initial Setup
     close all
-    if nargin < 1, Reference_ID = 6; end
+    if nargin < 1, Reference_ID = 1; end
     
     % Data
     data = load('normalizedChiariTraining.mat');
@@ -22,6 +23,7 @@ function [] = chiari_example_average(Reference_ID)
     dataR = orient(images(:,:,Reference_ID));
     dataR_mask = orient(masks(:,:,Reference_ID));
 
+    %% Calculate SSD for each template image
     for i = 1:d_size
         dataT = orient(images(:,:,i));
 
@@ -35,6 +37,7 @@ function [] = chiari_example_average(Reference_ID)
     ssd_sorted = sortrows(ssd_list, 1);
     top_picks = ssd_sorted(2:n+1,2);
     
+    %% Run the image registration and store it in a file for future use
     if ~exist([num2str(Reference_ID) '_yc.mat'])
         yc_list = cell(n, 1);
 
@@ -48,12 +51,13 @@ function [] = chiari_example_average(Reference_ID)
         if size(yc_list) < n
             for i = size(yc_list):n
                 c = top_picks(i);
-                yc_list(i) = chiari_example(Reference_ID, c, 'plots', 0);
+                yc_list(i) = chiari_example(Reference_ID, 'Template_ID', c, 'plots', 0);
             end
             save([num2str(Reference_ID) '_yc.mat'], 'yc_list')
         end
     end
     
+    %% Compute transformations and averages
     avg_weights = logspace(0 + avg_w_rg, 0 - avg_w_rg, n);
     
     c_sum = zeros(m(1)*m(2), 1);
@@ -76,33 +80,34 @@ function [] = chiari_example_average(Reference_ID)
     c_bin = c_avg > avg_thr;
     b_bin = b_avg > avg_thr;
     
+    %% plot images
     figure()
     
     subplot(2,2,1)
-    viewImage2Dsc(256 * c_avg, omega, m);
-    hold on
-    viewContour2D(dataR_mask == 1, omega, m);
-    axis([0.3    0.9    0.15    0.75]);
-    colorbar
-    
-    subplot(2,2,2)
     viewImage2Dsc(256 * b_avg, omega, m);
     hold on
     viewContour2D(dataR_mask == 2, omega, m);
     axis([0.3    0.9    0.15    0.75]);
     colorbar
     
-    subplot(2,2,3)
-    viewImage2Dsc(256 * c_bin, omega, m);
+    subplot(2,2,2)
+    viewImage2Dsc(256 * c_avg, omega, m);
     hold on
     viewContour2D(dataR_mask == 1, omega, m);
     axis([0.3    0.9    0.15    0.75]);
     colorbar
     
-    subplot(2,2,4)
+    subplot(2,2,3)
     viewImage2Dsc(256 * b_bin, omega, m);
     hold on
     viewContour2D(dataR_mask == 2, omega, m);
+    axis([0.3    0.9    0.15    0.75]);
+    colorbar
+    
+    subplot(2,2,4)
+    viewImage2Dsc(256 * c_bin, omega, m);
+    hold on
+    viewContour2D(dataR_mask == 1, omega, m);
     axis([0.3    0.9    0.15    0.75]);
     colorbar
 end
