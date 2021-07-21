@@ -1,19 +1,23 @@
-function [] = chiari_example_average(Reference_ID)
+function vout = chiari_example_average(Reference_ID, varargin)
     %% Initial Setup
     close all
-    if nargin < 1, Reference_ID = 1; end
-    
-    % Data
-    data = load('normalizedChiariTraining.mat');
-    images = data.images_normal;
-    masks = data.images_masks;
+    if nargin < 1, Reference_ID = 6; end
     
     omega     = [0,1,0,1];
     m         = [256,256];
     
     avg_w_rg  = 1;
-    avg_thr   = 0.6;
-    n         = 5;
+    avg_thr   = 0.7;
+    n         = 30;
+    
+    for k=1:2:length(varargin),    % overwrite defaults  
+        eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+    end;
+    
+    % Data
+    data = load('normalizedChiariTraining.mat');
+    images = data.images_normal;
+    masks = data.images_masks;
     d_size    = size(images, 3);
     
     ssd_list = zeros(size(images, 3), 2);
@@ -76,6 +80,9 @@ function [] = chiari_example_average(Reference_ID)
     
     c_bin = c_avg > avg_thr;
     b_bin = b_avg > avg_thr;
+    
+    avg_mask = 2*c_bin + b_bin;
+    vout{1} = avg_mask;
     
     %% plot images
     figure()
