@@ -18,7 +18,7 @@ function vout = chiari_example(Reference_ID, varargin)
     default_ref  = 6;
     
     viewPara     = {'viewImage','viewImage2D','colormap','bone(256)'};
-    imgPara      = {'imgModel','linearInter'};
+    imgPara      = {'imgModel','nnInter'};
     
     Template_ID  = -1;
     plots        = 1;
@@ -61,7 +61,7 @@ function vout = chiari_example(Reference_ID, varargin)
         w  = weight_scale;
         dataW = exp(- w*(xc(:,1)-c(1)).^2 - w*(xc(:,2)-c(2)).^2)+.1;
         
-        Wt = linearInter(dataW,omega,getCellCenteredGrid(omega,m));
+        Wt = nnInter(dataW,omega,getCellCenteredGrid(omega,m));
         Wc = diag(sparse(Wt));
     end
     
@@ -78,8 +78,8 @@ function vout = chiari_example(Reference_ID, varargin)
             dataT = orient(images(:,:,i));
     
             xc = getCellCenteredGrid(omega,m);
-            Tc = linearInter(dataT,omega,xc);
-            Rc = linearInter(dataR,omega,xc);
+            Tc = nnInter(dataT,omega,xc);
+            Rc = nnInter(dataR,omega,xc);
             
             if weighted
                 Dc = SSD(Tc, Rc, omega, m, 'weights', Wc);
@@ -132,7 +132,7 @@ function vout = chiari_example(Reference_ID, varargin)
         for lvl=min_level:max_level
             WD = ML{lvl}.W;  % 1) 
             WC = WD;         % 2) coefficients for linear inter
-            Wc = linearInter(WC,omega,getCellCenteredGrid(omega,ML{lvl}.m)); % 3)
+            Wc = nnInter(WC,omega,getCellCenteredGrid(omega,ML{lvl}.m)); % 3)
             MLw{lvl}.Wc = diag(sparse(Wc)); 
             MLw{lvl}.m  = ML{lvl}.m;
             ML{lvl} = rmfield(ML{lvl},'W');
@@ -145,7 +145,7 @@ function vout = chiari_example(Reference_ID, varargin)
     yc = MLIR(ML, 'parametric', false,...
         'minLevel', 5, 'maxLevel', 8,'plots',plots);
     
-    Tc = linearInter(dataT_mask, omega, center(yc, m));
+    Tc = nnInter(dataT_mask, omega, center(yc, m));
     
     vout{1} = Tc;
     
