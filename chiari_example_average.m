@@ -6,7 +6,9 @@ function vout = chiari_example_average(Reference_ID, varargin)
     omega     = [0,1,0,1];
     m         = [256,256];
     
-    avg_w_rg  = 1;
+    weight_type  = 'lin';
+    weight_range  = 5;
+    
     avg_thr   = 0.6;
     training  = 41;
     n         = 40;
@@ -52,7 +54,7 @@ function vout = chiari_example_average(Reference_ID, varargin)
 
         for i = 1:n
             c = top_picks(i);
-            Tc_list(i) = chiari_example(Reference_ID, 'Template_ID', c, 'plots', 0);
+            [Tc_list(i),dj] = chiari_example(Reference_ID, 'Template_ID', c, 'plots', 0);
         end
         save([num2str(Reference_ID) '_Tc.mat'], 'Tc_list')
     else
@@ -67,7 +69,19 @@ function vout = chiari_example_average(Reference_ID, varargin)
     end
     
     %% Compute transformations and averages
-    avg_weights = logspace(0 + avg_w_rg, 0 - avg_w_rg, n);
+    if strcmp(weight_type, 'lin')
+        avg_weights = linspace(weight_range + weight_range, weight_range - weight_range, n);
+    elseif strcmp(weight_type, 'exp')
+        avg_weights = logspace(0 + weight_range, 0 - weight_range, n);
+    elseif strcmp(weight_type, 'none')
+        avg_weights = ones(n);
+    end
+    
+    if plot
+        figure()
+        scatter(1:n, avg_weights)
+        title("Weights", 'FontSize', 25)
+    end
     
     c_sum = zeros(m(1)*m(2), 1);
     b_sum = zeros(m(1)*m(2), 1);
@@ -98,6 +112,7 @@ function vout = chiari_example_average(Reference_ID, varargin)
         hold on
         viewContour2D(dataR_mask > 0, omega, m);
         title("Average T(yc)", 'FontSize', 25)
+        set(gca,'XTick',[], 'YTick', [])
         axis([0.3    0.9    0.15    0.75]);
         colorbar
 
@@ -105,6 +120,7 @@ function vout = chiari_example_average(Reference_ID, varargin)
         viewImage2Dsc(256 * b_bin + 256 * c_bin, omega, m);
         hold on
         viewContour2D(dataR_mask > 0, omega, m);
+        set(gca,'XTick',[], 'YTick', [])
         title("Binary Average", 'FontSize', 25)
         axis([0.3    0.9    0.15    0.75]);
         colorbar
