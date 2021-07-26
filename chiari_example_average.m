@@ -1,34 +1,35 @@
 function vout = chiari_example_average(Reference_ID, varargin)
     %% Initial Setup
-    close all
+%     close all
     if nargin < 1, Reference_ID = 6; end
     
     omega     = [0,1,0,1];
     m         = [256,256];
     
     avg_w_rg  = 1;
-    avg_thr   = 0.7;
-    n         = 30;
+    avg_thr   = 0.6;
+    training  = 41;
+    n         = 40;
+    plot      = 1;
     
     for k=1:2:length(varargin),    % overwrite defaults  
         eval([varargin{k},'=varargin{',int2str(k+1),'};']);
     end;
     
     % Data
-    data = load('normalizedChiariTraining.mat');
-    images = data.images_normal;
-    masks = data.images_masks;
-    d_size    = size(images, 3);
+    data      = load('normalizedChiariTraining.mat');
+    images    = data.images_normal;
+    masks     = data.images_masks;
     
-    ssd_list = zeros(size(images, 3), 2);
-    ssd_list(:, 2) = 1:d_size;
+    ssd_list  = zeros(training, 2);
+    ssd_list(:, 2) = 1:training;
     
     orient = @(I) flipud(I)';
     dataR = orient(images(:,:,Reference_ID));
     dataR_mask = orient(masks(:,:,Reference_ID));
 
     %% Calculate SSD for each template image
-    for i = 1:d_size
+    for i = 1:training
         dataT = orient(images(:,:,i));
 
         xc = getCellCenteredGrid(omega,m);
@@ -39,7 +40,11 @@ function vout = chiari_example_average(Reference_ID, varargin)
     end
     
     ssd_sorted = sortrows(ssd_list, 1);
-    top_picks = ssd_sorted(2:n+1,2);
+    if Reference_ID <= training
+        top_picks = ssd_sorted(2:n+1,2);
+    else
+        top_picks = ssd_sorted(1:n,2);
+    end
     
     %% Run the image registration and store it in a file for future use
     if ~exist([num2str(Reference_ID) '_Tc.mat'])
@@ -85,33 +90,23 @@ function vout = chiari_example_average(Reference_ID, varargin)
     vout{1} = avg_mask;
     
     %% plot images
-    figure()
-    
-    subplot(2,2,1)
-    viewImage2Dsc(256 * b_avg, omega, m);
-    hold on
-    viewContour2D(dataR_mask == 2, omega, m);
-    axis([0.3    0.9    0.15    0.75]);
-    colorbar
-    
-    subplot(2,2,2)
-    viewImage2Dsc(256 * c_avg, omega, m);
-    hold on
-    viewContour2D(dataR_mask == 1, omega, m);
-    axis([0.3    0.9    0.15    0.75]);
-    colorbar
-    
-    subplot(2,2,3)
-    viewImage2Dsc(256 * b_bin, omega, m);
-    hold on
-    viewContour2D(dataR_mask == 2, omega, m);
-    axis([0.3    0.9    0.15    0.75]);
-    colorbar
-    
-    subplot(2,2,4)
-    viewImage2Dsc(256 * c_bin, omega, m);
-    hold on
-    viewContour2D(dataR_mask == 1, omega, m);
-    axis([0.3    0.9    0.15    0.75]);
-    colorbar
+    if plot
+        figure()
+        
+        subplot(1,2,1)
+        viewImage2Dsc(256 * b_avg + 256 * c_avg, omega, m);
+        hold on
+        viewContour2D(dataR_mask > 0, omega, m);
+        title("Average T(yc)", 'FontSize', 25)
+        axis([0.3    0.9    0.15    0.75]);
+        colorbar
+
+        subplot(1,2,2)
+        viewImage2Dsc(256 * b_bin + 256 * c_bin, omega, m);
+        hold on
+        viewContour2D(dataR_mask > 0, omega, m);
+        title("Binary Average", 'FontSize', 25)
+        axis([0.3    0.9    0.15    0.75]);
+        colorbar
+    end
 end
