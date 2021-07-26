@@ -187,12 +187,12 @@ function vout = chiari_example(Reference_ID, varargin)
 
     %% Analyze segmentation quality
     ycc = center(yc, m);
-
-    create_table(dataT_mask, dataR_mask, omega, ycc)
+    [og_dice, tn_dice] = create_table(dataT_mask, dataR_mask, omega, ycc);
+    vout{2} = [og_dice, tn_dice];
 end
 
 %% Function for printing dice/jaccard
-function [] = create_table(dataT_mask, dataR_mask, omega, ycc)
+function [og_dice,tn_dice] = create_table(dataT_mask, dataR_mask, omega, ycc)
     mk_yc = nnInter(dataT_mask, omega, ycc);
     mk_t = reshape(dataT_mask, [], 1);
     mk_r = reshape(dataR_mask, [], 1);
@@ -212,6 +212,9 @@ function [] = create_table(dataT_mask, dataR_mask, omega, ycc)
     tn_mk_b = dice_jaccard(tn_mk_b_data{1}, tn_mk_b_data{2}, 1);
     tn_mk_c = dice_jaccard(tn_mk_c_data{1}, tn_mk_c_data{2}, 1);
     tn_mk_t = dice_jaccard(tn_mk_t_data{1}, tn_mk_t_data{2}, 1);
+    
+    og_dice=og_mk_t{1};
+    tn_dice=tn_mk_t{1};
 
     T = table([og_mk_b{1}; og_mk_c{1}; og_mk_t{1}], ...
               [tn_mk_b{1}; tn_mk_c{1}; tn_mk_t{1}], ...
