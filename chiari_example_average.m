@@ -9,9 +9,9 @@ function vout = chiari_example_average(Reference_ID, varargin)
     weight_type  = 'lin';
     weight_range  = 5;
     
-    avg_thr   = 0.6;
+    avg_thr   = 0.4;
     training  = 41;
-    n         = 40;
+    n         = 7;
     plot      = 1;
     
     for k=1:2:length(varargin),    % overwrite defaults  
@@ -54,7 +54,8 @@ function vout = chiari_example_average(Reference_ID, varargin)
 
         for i = 1:n
             c = top_picks(i);
-            [Tc_list(i),dj] = chiari_example(Reference_ID, 'Template_ID', c, 'plots', 0);
+            chi_ex = chiari_example(Reference_ID, 'Template_ID', c, 'plots', 0);
+            Tc_list(i) = chi_ex(1);
         end
         save([num2str(Reference_ID) '_Tc.mat'], 'Tc_list')
     else
@@ -62,7 +63,8 @@ function vout = chiari_example_average(Reference_ID, varargin)
         if size(Tc_list) < n
             for i = size(Tc_list):n
                 c = top_picks(i);
-                Tc_list(i) = chiari_example(Reference_ID, 'Template_ID', c, 'plots', 0);
+                chi_ex = chiari_example(Reference_ID, 'Template_ID', c, 'plots', 0);
+                Tc_list(i) = chi_ex(1);
             end
             save([num2str(Reference_ID) '_Tc.mat'], 'Tc_list')
         end
@@ -100,7 +102,7 @@ function vout = chiari_example_average(Reference_ID, varargin)
     c_bin = c_avg > avg_thr;
     b_bin = b_avg > avg_thr;
     
-    avg_mask = 2*c_bin + b_bin;
+    avg_mask = c_bin + 2*b_bin;
     vout{1} = avg_mask;
     
     %% plot images
@@ -110,7 +112,7 @@ function vout = chiari_example_average(Reference_ID, varargin)
         subplot(1,2,1)
         viewImage2Dsc(256 * b_avg + 256 * c_avg, omega, m);
         hold on
-        viewContour2D(dataR_mask > 0, omega, m);
+        %viewContour2D(dataR_mask > 0, omega, m);
         title("Average T(yc)", 'FontSize', 25)
         set(gca,'XTick',[], 'YTick', [])
         axis([0.3    0.9    0.15    0.75]);
@@ -119,7 +121,7 @@ function vout = chiari_example_average(Reference_ID, varargin)
         subplot(1,2,2)
         viewImage2Dsc(256 * b_bin + 256 * c_bin, omega, m);
         hold on
-        viewContour2D(dataR_mask > 0, omega, m);
+        %viewContour2D(dataR_mask > 0, omega, m);
         set(gca,'XTick',[], 'YTick', [])
         title("Binary Average", 'FontSize', 25)
         axis([0.3    0.9    0.15    0.75]);
