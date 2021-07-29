@@ -1,11 +1,8 @@
-function histnormal(refids, figs, jpgs, mat)
+function histnormal(refids, varargin)
 %==========================================================================
-% refids = patient id numbers       vector
-% figs   = choice for figures       0 or 1
-% jpgs   = choice for .jpgs         0 or 1
-% mat    = choice for .mat file     0 or 1   
+% refids = patient id numbers       vector 
 %
-% Ex:       histnormal([1 2 3 4], 1, 1, 1)  will create 3 figures:
+% Ex:       histnormal([1 2 3 4], 'figs', 1, 'jpgs', 1, 'mat', 1)  will create 3 figures:
 %
 %           Figure 1) Original Images
 %                     Histograms of Original Images
@@ -28,24 +25,21 @@ function histnormal(refids, figs, jpgs, mat)
 %
 % Uses chiariTrainingData.mat and MATLAB's Image Processing Toolbox
 %==========================================================================
-%% Defaults
-if nargin<4 || isempty(mat)
-     mat=0;
-end
-if nargin<3 || isempty(jpgs)
-     jpgs=0;
-end
-if nargin<2 || isempty(figs)
-     figs=1;
-end
-if nargin<1 || isempty(refids)
-     refids=1:5;
+if nargin == 0
+     refids=1:51;
 end
 %%
-N = length(refids);
-data = load('chiariTrainingData.mat');
+figs   = 0;
+jpgs   = 0;
+mat    = 0;
+N      = length(refids);
+data   = load('chiariTrainingData-v2.mat');
 images = data.imagesTrain;
-masks = data.masksTrain;
+masks  = data.masksTrain;
+
+for k=1:2:length(varargin),    % overwrite defaults  
+    eval([varargin{k},'=varargin{',int2str(k+1),'};']);
+end;
 
 %% Figures
 if figs == 1
@@ -127,17 +121,17 @@ if jpgs == 1
 end
 %% Creating a .mat file with the new images
 if mat == 1
-    images_original = zeros(256,256,N);
-    images_normal = zeros(256,256,N);
-    images_masks = zeros(256,256,N);
+    originalTrain = zeros(256,256,N);
+    normalTrain = zeros(256,256,N);
+    masksTrain = zeros(256,256,N);
     for i = 1:N
        image = uint8(256 .* (images(:,:,refids(i)) ./ ...     %max adjusted image
             max(max(images(:,:,refids(i))))));
-       images_original(:,:,i) = image;
-       images_normal(:,:,i) = histeq(image);
-       images_masks(:,:,i) = masks(:,:,i);
+       originalTrain(:,:,i) = image;
+       normalTrain(:,:,i) = histeq(image);
+       masksTrain(:,:,i) = masks(:,:,i);
     end
-    clearvars -except images_original images_normal images_masks
-    save('normalizedChiariTraining.mat')
+    clearvars -except originalTrain normalTrain masksTrain
+    save('normalizedChiariTrainingData-v2.mat')
 end
 
