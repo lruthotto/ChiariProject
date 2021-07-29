@@ -34,13 +34,13 @@ function vout = chiari_example_average(R, file, varargin)
 
     %% Calculate SSD for each template image
     xc = getCellCenteredGrid(omega,m);
-    Tc = nnInter(R,omega,xc);
+    Rc = nnInter(R,omega,xc);
     
     for i = 1:train_size
         Ti = orient(images(:,:,i));
         Tc = nnInter(Ti,omega,xc);
 
-        ssd_list(i, 2) = SSD(Tc, Tc, omega, m);
+        ssd_list(i, 2) = SSD(Tc, Rc, omega, m);
     end
     
     ssd_sorted = sortrows(ssd_list, 2);
