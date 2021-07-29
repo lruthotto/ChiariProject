@@ -25,10 +25,6 @@ function vout = chiari_example_average(R, file, varargin)
     images       = data.normalTrain(:,:,1:train_size);
     masks        = data.masksTrain(:,:,1:train_size);
     
-    orient = @(I) flipud(I)';
-    R       = orient(R);
-    Rm      = orient(Rm);
-    
     ssd_list  = zeros(train_size, 2);
     ssd_list(:, 1) = 1:train_size;
 
@@ -36,6 +32,7 @@ function vout = chiari_example_average(R, file, varargin)
     xc = getCellCenteredGrid(omega,m);
     Rc = nnInter(R,omega,xc);
     
+    orient  = @(I) flipud(I)';
     for i = 1:train_size
         Ti = orient(images(:,:,i));
         Tc = nnInter(Ti,omega,xc);
@@ -91,6 +88,8 @@ function vout = chiari_example_average(R, file, varargin)
     
     %% plot images
     if plots == 1
+        Rm      = orient(Rm);
+    
         figure()
         
         subplot(1,3,1)
@@ -176,7 +175,7 @@ end
 
 
 function runMinimalExample
-    id   = 1;
+    id   = 6;
     file = [num2str(id) '_tc.mat'];
 
     test_data     = load('normalizedChiariTestData-v2.mat');
