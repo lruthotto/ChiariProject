@@ -8,7 +8,7 @@ function vout = chiari_example_average(R, file, varargin)
     %% Initial Setup
     Rm         = zeros(256,256);
     thr        = 0.4;
-    n          = 15;
+    n          = 5;
     
     omega      = [0,1,0,1];
     m          = [256,256];
@@ -31,10 +31,9 @@ function vout = chiari_example_average(R, file, varargin)
     %% Calculate SSD for each template image
     xc = getCellCenteredGrid(omega,m);
     Rc = nnInter(R,omega,xc);
-    
-    orient  = @(I) flipud(I)';
+
     for i = 1:train_size
-        Ti = orient(images(:,:,i));
+        Ti = images(:,:,i);
         Tc = nnInter(Ti,omega,xc);
 
         ssd_list(i, 2) = SSD(Tc, Rc, omega, m);
@@ -44,6 +43,7 @@ function vout = chiari_example_average(R, file, varargin)
     top_picks = ssd_sorted(1:n,1);
     
     %% Run the image registration and store it in a file for future use
+    orient  = @(I) flipud(I)';
     if ~exist(file)
         Tc_list = cell(n, 1);
 
@@ -51,7 +51,7 @@ function vout = chiari_example_average(R, file, varargin)
             T  = images(:,:,top_picks(i));
             Tm = masks(:,:,top_picks(i));
             
-            Tc_list(i) = chiari_example(R, 'T_Tm', {T, Tm}, 'plots', 0);
+            Tc_list(i) = reshape(orient(chiari_example(R, 'T_Tm', {T, Tm}, 'plots', 0)), 1, []);
         end
         save(file, 'Tc_list')
     else
@@ -61,7 +61,7 @@ function vout = chiari_example_average(R, file, varargin)
                 T  = images(:,:,top_picks(i));
                 Tm = masks(:,:,top_picks(i));
                 
-                Tc_list(i) = chiari_example(R, 'T_Tm', {T, Tm}, 'plots', 0);
+                Tc_list(i) = reshape(orient(chiari_example(R, 'T_Tm', {T, Tm}, 'plots', 0)), 1, []);
             end
             save(file, 'Tc_list')
         end
@@ -84,12 +84,12 @@ function vout = chiari_example_average(R, file, varargin)
     b_bin = b_avg > thr;
     
     Tc = c_bin + 2*b_bin;
-    vout{1} = Tc;
+    
+    vout{1} = flipud(reshape(Tc, 1, [])');
     
     %% plot images
-    if plots == 1
-        Rm      = orient(Rm);
-    
+    Rm      = orient(Rm);
+    if plots == 1    
         figure()
         
         subplot(1,3,1)
@@ -125,7 +125,8 @@ function vout = chiari_example_average(R, file, varargin)
 
     %% Analyze segmentation quality
     if ~isequal(Rm, zeros(256,256))
-        create_table(Tc_list{1}, Rm, Tc)
+        Ts = Tc_list{1};
+        create_table(Ts, Rm, Tc)
     end
 end
 
@@ -175,7 +176,7 @@ end
 
 
 function runMinimalExample
-    id   = 6;
+    id   = 1;
     file = [num2str(id) '_tc.mat'];
 
     test_data     = load('normalizedChiariTestData-v2.mat');

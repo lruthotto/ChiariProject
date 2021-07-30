@@ -94,35 +94,37 @@ function vout = chiari_example(R, varargin)
         'minLevel', min_level, 'maxLevel', max_level,'plots',plots);
     
     Tc = nnInter(Tm, omega, center(yc, m));
-    vout{1} = Tc;
-    
-    %% Plotting the transformed mask
-    if plots
-        showResults(ML,yc)
-        showResults(ML_m, yc)
+    vout{1} = flipud(reshape(Tc, 256, [])');
 
-        FAIRfigure(); clf;
-        subplot(1, 2, 1);
-        viewImage(R,omega,m);
-        hold on
-        %Plot transformed mask
-        viewContour2D(Rm, omega, m, 'y');
-        viewContour2D(Tm, omega, m, 'b');
-        title("R with Rm and Tm")
-        axis equal
-
-        subplot(1, 2, 2);
-        viewImage(R,omega,m);
-        hold on
-        %Plot transformed mask
-        viewContour2D(Rm, omega, m, 'y');
-        viewContour2D(Tc, omega, m, 'b');
-        title("R with Rm and Tc")
-        axis equal
-    end
 
     %% Analyze segmentation quality
+    if plots, showResults(ML,yc); end
+                
     if ~isequal(Rm, zeros(256,256))
+        % Plotting the transformed mask
+        if plots
+            showResults(ML_m, yc)
+
+            FAIRfigure(); clf;
+            subplot(1, 2, 1);
+            viewImage(R,omega,m);
+            hold on
+            %Plot transformed mask
+            viewContour2D(Rm, omega, m, 'y');
+            viewContour2D(Tm, omega, m, 'b');
+            title("R with Rm and Tm")
+            axis equal
+
+            subplot(1, 2, 2);
+            viewImage(R,omega,m);
+            hold on
+            %Plot transformed mask
+            viewContour2D(Rm, omega, m, 'y');
+            viewContour2D(Tc, omega, m, 'b');
+            title("R with Rm and Tc")
+            axis equal
+        end
+    
         [og_dice, tn_dice] = create_table(Tm, Rm, Tc);
         vout{2} = [og_dice, tn_dice];
     end
@@ -134,6 +136,7 @@ end
 function [og_dice, tn_dice] = create_table(Tm, Rm, Tc)
     Tm = reshape(Tm, [], 1);
     Rm = reshape(Rm, [], 1);
+    Tc = reshape(Tc, [], 1);
 
     og_b = dice_jaccard(Tm == 1, Rm == 1);
     og_c = dice_jaccard(Tm == 2, Rm == 2);
