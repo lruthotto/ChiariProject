@@ -51,7 +51,9 @@ function vout = chiari_example_average(R, file, varargin)
             T  = images(:,:,top_picks(i));
             Tm = masks(:,:,top_picks(i));
             
-            Tc_list(i) = reshape(orient(chiari_example(R, 'T_Tm', {T, Tm}, 'plots', 0)), 1, []);
+            Tc = chiari_example(R, 'T_Tm', {T, Tm}, 'plots', 0);
+            
+            Tc_list{i} = reshape(orient(Tc{1}), [], 1);
         end
         save(file, 'Tc_list')
     else
@@ -61,7 +63,9 @@ function vout = chiari_example_average(R, file, varargin)
                 T  = images(:,:,top_picks(i));
                 Tm = masks(:,:,top_picks(i));
                 
-                Tc_list(i) = reshape(orient(chiari_example(R, 'T_Tm', {T, Tm}, 'plots', 0)), 1, []);
+                Tc = chiari_example(R, 'T_Tm', {T, Tm}, 'plots', 0);
+                
+                Tc_list{i} = reshape(orient(Tc{1}), [], 1);
             end
             save(file, 'Tc_list')
         end
@@ -85,7 +89,7 @@ function vout = chiari_example_average(R, file, varargin)
     
     Tc = c_bin + 2*b_bin;
     
-    vout{1} = flipud(reshape(Tc, 1, [])');
+    vout{1} = flipud(reshape(Tc, [], 256)');
     
     %% plot images
     Rm      = orient(Rm);
