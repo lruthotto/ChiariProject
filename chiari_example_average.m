@@ -13,6 +13,8 @@ function vout = chiari_example_average(R, file, varargin)
     omega      = [0,1,0,1];
     m          = [256,256];
     
+    alpha      = 500;
+    
     plots        = 1;
     data         = load('normalizedChiariTrainingData-v2.mat');
     train_size   = 41;
@@ -51,7 +53,7 @@ function vout = chiari_example_average(R, file, varargin)
             T  = images(:,:,top_picks(i));
             Tm = masks(:,:,top_picks(i));
             
-            Tc = chiari_example(R, 'T_Tm', {T, Tm}, 'plots', 0);
+            Tc = chiari_example(R, 'T_Tm', {T, Tm}, 'plots', 0, 'alpha', alpha);
             
             Tc_list{i} = reshape(orient(Tc{1}), [], 1);
         end
@@ -63,7 +65,7 @@ function vout = chiari_example_average(R, file, varargin)
                 T  = images(:,:,top_picks(i));
                 Tm = masks(:,:,top_picks(i));
                 
-                Tc = chiari_example(R, 'T_Tm', {T, Tm}, 'plots', 0);
+                Tc = chiari_example(R, 'T_Tm', {T, Tm}, 'plots', 0, 'alpha', alpha);
                 
                 Tc_list{i} = reshape(orient(Tc{1}), [], 1);
             end
