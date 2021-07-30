@@ -1,4 +1,4 @@
-%==============================================================================
+%==========================================================================
 % 
 %  Example for 2D registration of chiari data,
 %
@@ -9,7 +9,8 @@
 %   - pre-registration     affine2D
 %   - regularizer          mbHyperElastic  
 %   - optimization         Gauss-Newton
-% ===============================================================================
+% =========================================================================
+
 function vout = chiari_example(R, varargin)
 
     if nargin==0
@@ -18,19 +19,28 @@ function vout = chiari_example(R, varargin)
     close all;
     
     %% Initial Setup
+    
+    % Default values for template, template mask, and reference. Template
+    % and template mask are combined so that one can't be inputted without
+    % the other
     T_Tm         = {zeros(256,256), zeros(256,256)};
     Rm           = zeros(256,256);
     
+    % Registration parameters
     omega        = [0,1,0,1];
     m            = [256,256];
     alpha        = 500;
     mu           = 1;
     lambda       = 0;
     theta        = 1e-2;
-    
-    plots        = 1;
     min_level    = 5;
     max_level    = 8;
+    
+    % More settings
+    %  * Plots refers to to whether it should plot or run silently
+    %  * The data set can be changed
+    %  * The training size is how much of the data it will actually use
+    plots        = 1;
     data         = load('normalizedChiariTrainingData-v2.mat');
     train_size   = 41;
     viewPara     = {'viewImage','viewImage2D','colormap','bone(256)'};
@@ -44,12 +54,14 @@ function vout = chiari_example(R, varargin)
     images       = data.normalTrain(:,:,1:train_size);
     masks        = data.masksTrain(:,:,1:train_size);
     
+    % Orient data for FAIR use
     orient = @(I) flipud(I)';
     T_Tm{1} = orient(T_Tm{1});
     T_Tm{2} = orient(T_Tm{2});
     R       = orient(R);
     Rm      = orient(Rm);
     
+    % Factor to scale masks when viewing so that they are visible
     mask_scale = 128;
     
     %% Image registration options
@@ -58,14 +70,17 @@ function vout = chiari_example(R, varargin)
     trafo('reset','trafo','affine2D');
     regularizer('reset','regularizer','mbHyperElastic','alpha',alpha,'mu',mu,'lambda',lambda);
     
-    %% Find the most similar template
-    if isequal(T_Tm{1}, zeros(256,256)) && isequal(T_Tm{2}, zeros(256,256))     
+    %% Find the most similar template (SSD)
+    if isequal(T_Tm{1}, zeros(256,256)) && isequal(T_Tm{2}, zeros(256,256))
+        % Initialize minimum distance and the corresponding index
         min_d = intmax;
         min_i = -1;
         
+        % Setup reference
         xc = getCellCenteredGrid(omega,m);
         Rc = nnInter(R,omega,xc);
         
+        % Loop through templates, compute SSD, update minimum
         for i = 1:train_size
             Ti = orient(images(:,:,i));
             Tc = nnInter(Ti,omega,xc);
@@ -81,6 +96,7 @@ function vout = chiari_example(R, varargin)
         T_Tm{2} = orient(masks(:,:,min_i));
     end
     
+    % More convenient names
     T  = T_Tm{1};
     Tm = T_Tm{2};
     
@@ -89,10 +105,11 @@ function vout = chiari_example(R, varargin)
     ML_m = getMultilevel({mask_scale*Tm,mask_scale*Rm},omega,m,'fig',2*plots);
     distance('reset','distance','SSD');
     
-    %% Calculate and display the transformation
+    %% Calculate the transformation
     yc = MLIR(ML, 'parametric', false,...
         'minLevel', min_level, 'maxLevel', max_level,'plots',plots);
     
+    %% Output the transformed mask
     Tc = nnInter(Tm, omega, center(yc, m));
     vout{1} = flipud(reshape(Tc, 256, [])');
 
@@ -100,25 +117,26 @@ function vout = chiari_example(R, varargin)
     %% Analyze segmentation quality
     if plots, showResults(ML,yc); end
                 
+    % If a mask is inputted, plot and calculate dice
     if ~isequal(Rm, zeros(256,256))
         % Plotting the transformed mask
         if plots
             showResults(ML_m, yc)
 
+            %Rm and Tm
             FAIRfigure(); clf;
             subplot(1, 2, 1);
             viewImage(R,omega,m);
             hold on
-            %Plot transformed mask
             viewContour2D(Rm, omega, m, 'y');
             viewContour2D(Tm, omega, m, 'b');
             title("R with Rm and Tm")
             axis equal
 
+            %Rm and Tm[y]
             subplot(1, 2, 2);
             viewImage(R,omega,m);
             hold on
-            %Plot transformed mask
             viewContour2D(Rm, omega, m, 'y');
             viewContour2D(Tc, omega, m, 'b');
             title("R with Rm and Tc")
@@ -161,6 +179,7 @@ end
 
 
 
+%% FAIR function for viewing the contour of an image
 function varargout = viewContour2D(T,omega,m,color,varargin)
     h  = (omega(2:2:end)-omega(1:2:end))./m;
     xi = @(i) (omega(2*i-1)+h(i)/2:h(i):omega(2*i)-h(i)/2)';
@@ -179,6 +198,7 @@ end
 
 
 
+%% Minimal example for chiari_example
 function runMinimalExample
     id = 1;
 

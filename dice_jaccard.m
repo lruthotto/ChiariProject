@@ -1,5 +1,4 @@
-%==============================================================================
-% 
+%==========================================================================
 %  Function for calculating the segmentation quality. The matrices must be
 %  the same size. They are compared with a combination of intersections and
 %  unions.
@@ -11,9 +10,10 @@
 %  Outputs:
 %    - Dice similarity
 %    - Jaccard simularity
-% ===============================================================================
+% =========================================================================
 
 function vout = dice_jaccard(data1, data2, varargin)
+
     if nargin == 0
         runMinimalExample
         return;
@@ -36,6 +36,8 @@ function vout = dice_jaccard(data1, data2, varargin)
     
     return
 end
+
+
 
 function runMinimalExample
     A = ones(256, 128);

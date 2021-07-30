@@ -1,3 +1,20 @@
+%==========================================================================
+% 
+%  Example for 2D registration of chiari data that averages chiari_example,
+%
+%   - data                 chiari, omega=(0,1)x(0,1), level=5:8, m=[256,256]
+%   - viewer               viewImage2D
+%   - image model          splineInter
+%   - distance             SSD
+%   - pre-registration     affine2D
+%   - regularizer          mbHyperElastic  
+%   - optimization         Gauss-Newton
+%
+%  This works by summing up the top n closest masks to the reference in
+%  terms of SSD and then dividing by n. A threshold is then used to convert
+%  this into a binary mask.
+% =========================================================================
+
 function vout = chiari_example_average(R, file, varargin)
 
     if nargin==0
@@ -6,13 +23,21 @@ function vout = chiari_example_average(R, file, varargin)
     close all;
     
     %% Initial Setup
-    Rm         = zeros(256,256);
-    thr        = 0.4;
-    n          = 5;
     
+    % Reference mask along with the threshold and number of samples to
+    % average
+    Rm         = zeros(256,256);
+    thr        = 0.5;
+    n          = 10;
+    
+    % Registration parameters
     omega      = [0,1,0,1];
     m          = [256,256];
     
+    % More settings
+    %  * Plots refers to to whether it should plot or run silently
+    %  * The data set can be changed
+    %  * The training size is how much of the data it will actually use
     plots        = 1;
     data         = load('normalizedChiariTrainingData-v2.mat');
     train_size   = 41;
@@ -25,13 +50,19 @@ function vout = chiari_example_average(R, file, varargin)
     images       = data.normalTrain(:,:,1:train_size);
     masks        = data.masksTrain(:,:,1:train_size);
     
+    % List for storing the SSDs between the reference and all possible
+    % templates. The first column counts upwards to keep track of the
+    % template id.
     ssd_list  = zeros(train_size, 2);
     ssd_list(:, 1) = 1:train_size;
 
     %% Calculate SSD for each template image
+    
+    % Setup reference
     xc = getCellCenteredGrid(omega,m);
     Rc = nnInter(R,omega,xc);
 
+    % Loop through templates and compute SSDs
     for i = 1:train_size
         Ti = images(:,:,i);
         Tc = nnInter(Ti,omega,xc);
@@ -39,25 +70,37 @@ function vout = chiari_example_average(R, file, varargin)
         ssd_list(i, 2) = SSD(Tc, Rc, omega, m);
     end
     
+    % Sort the list and take the first n
     ssd_sorted = sortrows(ssd_list, 2);
     top_picks = ssd_sorted(1:n,1);
     
     %% Run the image registration and store it in a file for future use
     orient  = @(I) flipud(I)';
+    
+    % If the file doesn't exist, generate it
     if ~exist(file)
         Tc_list = cell(n, 1);
 
         for i = 1:n
+            % Load the template
             T  = images(:,:,top_picks(i));
             Tm = masks(:,:,top_picks(i));
             
+            % Calculate the transformation
             Tc = chiari_example(R, 'T_Tm', {T, Tm}, 'plots', 0);
             
+            % Orient and resize it to fit FAIR
             Tc_list{i} = reshape(orient(Tc{1}), [], 1);
         end
+        % Save the file for the next run through
         save(file, 'Tc_list')
+        
+    % If it does exist, load it
     else
         Tc_list = load(file).Tc_list;
+        
+        % This is in case the file doesn't have enough samples (incomplete
+        % file)
         if size(Tc_list) < n
             for i = size(Tc_list)+1:n
                 T  = images(:,:,top_picks(i));
@@ -74,6 +117,8 @@ function vout = chiari_example_average(R, file, varargin)
     %% Compute transformations and averages
     c_sum = zeros(m(1)*m(2), 1);
     b_sum = zeros(m(1)*m(2), 1);
+    
+    % Sum up all of the transformed template images
     for i = 1:n
         Tc = Tc_list{i};
         
@@ -81,18 +126,22 @@ function vout = chiari_example_average(R, file, varargin)
         b_sum = b_sum + (Tc == 2);
     end
     
+    % Divide by the total number of images
     c_avg = c_sum / n;
     b_avg = b_sum / n;
     
+    % Convert to binary
     c_bin = c_avg > thr;
     b_bin = b_avg > thr;
     
+    % Output the mask in the correct format
     Tc = c_bin + 2*b_bin;
-    
     vout{1} = flipud(reshape(Tc, [], 256)');
     
-    %% plot images
-    Rm      = orient(Rm);
+    % Also orient the mask
+    Rm = orient(Rm);
+    
+    %% Plot images
     if plots == 1    
         figure()
         
@@ -161,6 +210,7 @@ end
 
 
 
+%% FAIR function for viewing the contour of an image
 function varargout = viewContour2D(T,omega,m,color,varargin)
     h  = (omega(2:2:end)-omega(1:2:end))./m;
     xi = @(i) (omega(2*i-1)+h(i)/2:h(i):omega(2*i)-h(i)/2)';
@@ -179,6 +229,7 @@ end
 
 
 
+%% Minimal example for chiari_example_average
 function runMinimalExample
     id   = 1;
     file = [num2str(id) '_tc.mat'];
