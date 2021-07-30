@@ -20,16 +20,16 @@ function histnormal(refids, varargin)
 %
 %           Defaults with figures on and .jpg/.mat printing off
 %
-%  NOTE: this function lines images up side by side in one figure, so doing
-%  inputting more than about 5 ids at once (in a vector) is not recommended
+%  NOTE: this function lines images up side by side in one figure, so 
+%  inputting more than about 5 ids at once is not recommended for figures
 %
-% Uses chiariTrainingData.mat and MATLAB's Image Processing Toolbox
+% Uses chiariTrainingData-v2.mat and MATLAB's Image Processing Toolbox
 %==========================================================================
 if nargin == 0
      refids=1:51;
 end
-%%
-figs   = 0;
+%% Defaults
+figs   = 1;
 jpgs   = 0;
 mat    = 0;
 N      = length(refids);
@@ -37,9 +37,9 @@ data   = load('chiariTrainingData-v2.mat');
 images = data.imagesTrain;
 masks  = data.masksTrain;
 
-for k=1:2:length(varargin),    % overwrite defaults  
+for k=1:2:length(varargin)    % overwrite defaults  
     eval([varargin{k},'=varargin{',int2str(k+1),'};']);
-end;
+end
 
 %% Figures
 if figs == 1

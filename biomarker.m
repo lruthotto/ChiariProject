@@ -1,43 +1,46 @@
-function [biom_bs, biom_cb] = biomarker(mask, dense_id, opt) %mask will eventually be an input
-%% 
+function [biom_bs, biom_cb] = biomarker(mask, dense, varargin)
+%% Computes temporal peak spatial average DENSE biomarker
 % inputs:
-%     mask  = matrix of classes of each pixel
+%     mask  = 256x256 matrix of classes of each pixel
 %               0: background
 %               1: cerebellum
 %               2: brainstem
+%     dense = 256x256 matrix of peakDisplacement values
 % dense_id  = the id number for the DENSE image of interest
-% opt for border (1) or no border (0)
-% If you would like to 
+% options to include border, see figures, and display calculated biomarkers
 %% 
-if nargin<3 || isempty(opt)
-     opt = 0;
+% Establishing Defaults
+border = 0;
+figs = 0;
+display = 1;
+for k=1:2:length(varargin)          % overwrite defaults  
+    eval([varargin{k},'=varargin{',int2str(k+1),'};']);
 end
-data=load('chiariTrainingData-v2.mat');
-dense=data.peakDisplacementTrain(:,:,dense_id);
-%mask=data.masksTrain(:,:,dense_id);   %% Temporary -- eventually would be inputting a mask
-
-if opt == 1
-    border = blur(dense,1)<2.5;     %uses dense data to make a hard border for where we see CSF
-    imagesc(border)
+if border == 1
+    border = blur(dense,1)<2.5;     % defines a border for pixels we will ignore from the average based on too high displacement
+    %imagesc(border)
 else
     border = ones(256,256);
 end
 
-% figure(1)
-% clf;
-cb = mask==1;
-dense_cb = dense .* cb .* border;
-% imagesc(dense_cb)
-biom_cb = mean(nonzeros(dense_cb), 'all');
+cb = mask == 1;                             % defining cerebellum
+dense_cb = dense .* cb .* border;           % finding pixels to average
+biom_cb = mean(nonzeros(dense_cb), 'all');  % calculating average
 
-% figure(2)
-% clf;
-bs = mask==2;    
-dense_bs = dense .* bs .* border;
-% imagesc(dense_bs)
-biom_bs = mean(nonzeros(dense_bs), 'all');
+bs = mask==2;                               % defining brain stem
+dense_bs = dense .* bs .* border;           % finding pixels to average
+biom_bs = mean(nonzeros(dense_bs), 'all');  % calculating average
 
-disp(['Cerebellum:' num2str(biom_cb) '   Brain Stem:' num2str(biom_bs)])
+if figs == 1                %displaying figures of averaged pixels
+    figure()
+    imagesc(dense_cb)
+    
+    figure()
+    imagesc(dense_bs)
+end
+if display==1               %displaying calculated biomarkers
+    disp(['Cerebellum:' num2str(biom_cb) '   Brain Stem:' num2str(biom_bs)])
+end
 end
 
 function [output] = blur(A,w)
@@ -51,6 +54,7 @@ for i=w+1:row+w
     tmp=B(i-w:i+w,j-w:j+w);
     output(i-w,j-w)=mean(tmp(~isnan(tmp)));
   end
+end
 output=uint8(output);
 end
 
