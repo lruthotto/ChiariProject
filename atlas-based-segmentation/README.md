@@ -12,10 +12,10 @@ The main function is contained in the file 'chiari_atlas.m'.
 
 This function makes use of the following helper routines
 
-- 'biomarker.m' - Given a mask and DENSE image, produce the spatial-average-temporal-peak biomarker
-- 'chiari_example.m' - perform pairwise registration
-- 'chiari_example_average.m' - 
-- 'dice_jaccard.m' - quantify the segmentation accuracy
-- 'generate_avg.m' - 
-- 'histnormal.m' - histogram normalization
-- 'viewContour2D.m' - visualizes masks as contour plot
+- `biomarker.m` - Given a mask and DENSE image, produce the spatial-average-temporal-peak biomarker
+- `chiari_example.m` - perform pairwise registration
+- `chiari_example_average.m` - 
+- `dice_jaccard.m` - quantify the segmentation accuracy
+- `generate_avg.m` - 
+- `histnormal.m` - histogram normalization
+- `viewContour2D.m` - visualizes masks as contour plot
