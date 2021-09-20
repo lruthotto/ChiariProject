@@ -8,6 +8,6 @@ This code requires recent versions of Python and pytorch as provided, e.g., on G
 
 ## Overview
 
-['MRI_segmentation.ipynb']() 
+[`MRI_segmentation.ipynb`]() 
 
-['U-Net_Emory_REU.ipynb']()
+[`U-Net_Emory_REU.ipynb`]()
