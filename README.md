@@ -10,9 +10,9 @@ Codes used to evaluate the atlas-based and neural-network-based semantic segment
 }
 ```
 
-The MATLAB implementation of the atlas-based approach can be found in the subdirectory ['atlas-based-segmentation'](https://github.com/lruthotto/ChiariProject/tree/main/atlas-based-segmentation).
+The MATLAB implementation of the atlas-based approach can be found in the subdirectory [`atlas-based-segmentation`](https://github.com/lruthotto/ChiariProject/tree/main/atlas-based-segmentation).
 
-The PyTorch implementation of the neural-network-based approach is contained in the subdirectory ['convolutional-neural-network'](https://github.com/lruthotto/ChiariProject/tree/main/convolutional-neural-network).
+The PyTorch implementation of the neural-network-based approach is contained in the subdirectory [`convolutional-neural-network`](https://github.com/lruthotto/ChiariProject/tree/main/convolutional-neural-network).
 
 ## Dataset
 
